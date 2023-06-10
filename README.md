@@ -10,7 +10,7 @@ As suggested in [[1]](#references), our prediction is based on the Hardy-Littlew
 
 ![SegmentLocal](images/N_exp21_H_60.png)
 
-The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ the "probability" that an integer close to $N$ is prime,
+The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ being the "probability" that an integer close to $N$ is prime (and we assume $\lambda \asymp 1$),
 
 $$\mathrm{Binom}(H,\lambda/H) =  \frac{e^{-\lambda}\lambda^m}{m!}\bigg[1 + \frac{Q_1(\lambda,m)}{H} + \frac{Q_2(\lambda,m)}{H^2} + \cdots\bigg],$$
 where each $Q_j(\lambda,m)$ is a polynomial in $\lambda$ and $m$, and in particular, 
