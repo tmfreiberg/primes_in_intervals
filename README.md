@@ -19,7 +19,7 @@ $$Q_1(\lambda,m) = \frac{m - (m - \lambda)^2}{2}.$$
 
 Our prediction (green) is 
 
-$$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{\log H + (\log 2\pi + \gamma - 1)}{H}Q_1(\lambda,m) \right],$$
+$$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{Q_1(\lambda,m)}{H}\left(\log H + (\log 2\pi + \gamma - 1)\right) \right],$$
 
 in agreement with Cramér's model only as a first-order approximation. The secondary term in our prediction is more in line with our observation that the distribution of the numerical data is more "pinched up" around the center: there is more of a _bias_ towards the mean $\lambda$ than is suggested by the Binomial distribution.
 
