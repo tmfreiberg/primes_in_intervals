@@ -8,7 +8,7 @@ The histogram shows the distribution of primes in intervals. Cramér's random mo
 
 As suggested in [[1]](#references), our prediction is based on the Hardy-Littlewood prime tuples conjecture, inclusion-exclusion, and a precise estimate, due to Montgomery and Soundararajan [[3]](#references), for a certain average involving the singular series of the prime tuples conjecture. 
 
-![SegmentLocal](images/exp20_H_76.png)
+![SegmentLocal](images/exp21_H_60.png)
 
 The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ the "probability" that an integer close to $N$ is prime,
 
@@ -1921,7 +1921,7 @@ and ```frei_alt``` is the function
 
 $$F^\*(H,m,\lambda^\*) = \frac{e^{-\lambda^\*}(\lambda^\*)^m}{m!}\left[1 + \frac{\lambda^\*}{H}(m - \lambda^\*) + \frac{\log H + (\log 2\pi + \gamma - 1)}{H}\cdot \frac{m - (m - \lambda^\*)^2}{2} \right],$$
 
-We use $F$ with $\lambda = H/(\log N - 1)$ and $F^\*$ with $\lambda^\* = H/\log N$, $\lambda/H$ representing the "probability" of an integer very close to $N$ being prime.
+We use $F$ with $\lambda = H/(\log N - 1)$ and $F^\*$ with $\lambda^\* = H/\log N$, $\lambda/H$ (or $\lambda^\*/H$) representing the "probability" of an integer very close to $N$ being prime.
 
 We're comparing these against the prediction based on $$\mathrm{Binom}(H, \lambda/H)$$.
 
