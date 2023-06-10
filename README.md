@@ -2319,4 +2319,761 @@ Interval type: disjoint. Lower bound: 2000000. Upper bound: 3000000. Interval le
 prime_tally	6872	6857	6849	6791	6770	6808	6765	6717	6747	6707	67883
 ```
 
+<a id='plot'></a>
+### Plot & animate
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Display](#display) | ↓ [Worked example](#worked) </sup>
 
+<a id='eg1plot'></a>
+#### Example 1.
+
+```python
+import numpy as np
+import sympy
+import matplotlib.pyplot as plt 
+from matplotlib import animation  
+from matplotlib import rc  
+
+X = retrieve_data1olap
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(cp):
+    ax.clear()
+
+    mu = X['statistics'][cp]['mean']
+    sigma = X['statistics'][cp]['var']
+    med = X['statistics'][cp]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][cp]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0], hor_axis[-1]), ylim=(0, np.ceil(100*y_max)/100 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][cp].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    B = cp
+    N = (A + B)/2
+    p = 1/(np.log(N) - 1)
+    p_alt = 1/np.log(N)
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    #ax.plot(x, pois_pmf(H,x,H*p), 'r--',zorder=3.5, label=r'$\mathrm{Pois}(\lambda)$')
+    #ax.plot(x, norm.pdf(x,H*p,np.sqrt(H*p*(1 - p))), 'g--',zorder=3.5)
+    ax.plot(x, binom_pmf(H,x,p), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda/H)$')
+    if interval_type == 'overlap':
+        ax.plot(x, frei(H,x,H*p), 'g--',zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+        #ax.plot(x, frei_alt(H,x,H*p_alt), 'b--', zorder=3.5, label=r'$\mathrm{F^*}(H,m,\lambda^*)$')
+    
+    # Overlay information
+    if interval_type == 'overlap':
+        ax.text(0.70,0.15,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                + fr'$A < a \leq B$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + fr'$A = {A}$' + '\n\n' 
+                + fr'$B = {B}$' + '\n\n' 
+                + fr'$N = (A + B)/2$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    if interval_type == 'disjoint':
+        ax.text(0.72,0.1,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                + fr'$a = A + kH$' + '\n\n' 
+                + fr'$0 \leq k \leq (B - A)/H$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + fr'$A = {A}$' + '\n\n' 
+                + fr'$B = {B}$' + '\n\n' 
+                + fr'$N = (A + B)/2$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+
+    
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C[1:], interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+![SegmentLocal](images/exp20/2_to_3_million_H_100.png)
+
+```python
+# Save a video of the animation.
+from IPython.display import HTML
+
+HTML(X_anim.to_html5_video())
+```
+
+<a id='eg2plot'></a>
+#### Example 2.
+
+```python
+X = retrieve_data2olap
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C[1:]:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(cp):
+    ax.clear()
+
+    mu = X['statistics'][cp]['mean']
+    sigma = X['statistics'][cp]['var']
+    med = X['statistics'][cp]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][cp]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0]-0.5, hor_axis[-1]+0.5), ylim=(0,np.ceil(100*y_max)/100 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][cp].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    B = cp
+    N = (A + B)/2
+    p = 1/(np.log(N) - 1)
+    p_alt = 1/np.log(N)
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    #ax.plot(x, pois_pmf(H,x,H*p), 'r--',zorder=3.5, label=r'$\mathrm{Pois}(\lambda)$')
+    #ax.plot(x, norm.pdf(x,H*p,np.sqrt(H*p*(1 - p))), 'g--',zorder=3.5)
+    ax.plot(x, binom_pmf(H,x,p), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda/H)$')
+    if interval_type == 'overlap':
+        #ax.plot(x, frei_alt(H,x,H*p_alt), 'b--',zorder=3.5, label=r'$\mathrm{F^*}(H,m,\lambda^*)$')
+        ax.plot(x, frei(H,x,H*p), '--', color='green', zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+    
+    # Overlay information
+    if interval_type == 'overlap':
+        if B != C[-1]:
+            ax.text(0.70,0.18,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                    +  fr'$A < a \leq B$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$A = {A}$' + '\n\n' 
+                    + fr'$B = {B}$' + '\n\n' 
+                    + fr'$N = (A + B)/2$' + '\n\n' 
+                    + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' 
+                    + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+        if B == C[-1]:
+            ax.text(0.74,0.18,fr'$X = \pi(a + H) - \pi(a)$' + '\n\n' 
+                    + fr'$N - M < a \leq N + M$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$N = [\exp(18)]$' + '\n\n' 
+                    + fr'$M = {B - int(np.exp(18))}$' + '\n\n' 
+                    + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' 
+                    + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)            
+    if interval_type == 'disjoint':
+        ax.text(0.72,0.1,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                + fr'$a = A + kH$' + '\n\n' 
+                + fr'$0 \leq k \leq (B - A)/H$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + fr'$A = {A}$' + '\n\n' 
+                + fr'$B = {B}$' + '\n\n' 
+                + fr'$N = (A + B)/2$' + '\n\n' 
+                + fr'$\lambda = H/\log N = {H*p:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+
+    
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C[1:], interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+![SegmentLocal](images/exp18_H_85.png)
+
+```python
+# Save a video of the animation.
+from IPython.display import HTML
+
+HTML(X_anim.to_html5_video())
+```
+
+<a id='worked'></a>
+### Worked examples
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Plot & animate](#plot) | ↓ [Extensions](#extensions) </sup>
+
+<a id='eg4worked'></a>
+### Example 4
+
+```python
+# In this example, we'll try our alternative estimate F*(H,m,lambda*), lambda* = 1/log N.
+N = int(np.exp(20))
+HH = [20,30,40,50,60,70,80,90,100,200]
+step = 10**3
+A = N - 10**5
+B = N + 10**5
+C = list(range(A,B+1,step))
+```
+```python
+exp20 = { H : {} for H in HH}
+start = timer()
+for H in HH:
+    exp20[H] = intervals(C,H,interval_type='overlap')
+end = timer()
+end - start 
+```
+``
+3146.539329699939
+```
+
+```python
+for H in HH:
+    save(exp20[H])
+```
+```python
+for H in [20,30,40,50,70,80,200]:
+    retrieve(H)['header']
+```
+```
+Found 1 dataset corresponding to interval of length 20 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 20, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 30 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 30, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 40 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 40, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 50 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 50, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 70 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 70, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 80 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 80, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 200 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 200, 'no_of_checkpoints': 201, 'contents': ['data']}
+```
+
+```python
+retrieve(60)[1]['header']
+```
+```
+Found 2 datasets corresponding to interval of length 60 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 2669017, 'upper_bound': 3869017, 'interval_length': 60, 'no_of_checkpoints': 1201, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 60, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+{'interval_type': 'overlap',
+ 'lower_bound': 485065195,
+ 'upper_bound': 485265195,
+ 'interval_length': 60,
+ 'no_of_checkpoints': 201,
+ 'contents': ['data']}
+```
+
+```python
+getexp20 = {}
+for H in [20,30,40,50,70,80,200]:
+    getexp20[H] = retrieve(H)
+```
+```
+Found 1 dataset corresponding to interval of length 20 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 20, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 30 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 30, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 40 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 40, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 50 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 50, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 70 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 70, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 80 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 80, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 1 dataset corresponding to interval of length 200 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 200, 'no_of_checkpoints': 201, 'contents': ['data']}
+```
+
+```python
+for H in [60, 90, 100]:
+    getexp20[H] = retrieve(H)[1]
+```
+```
+Found 2 datasets corresponding to interval of length 60 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 2669017, 'upper_bound': 3869017, 'interval_length': 60, 'no_of_checkpoints': 1201, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 60, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 2 datasets corresponding to interval of length 90 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 65559979, 'upper_bound': 65759959, 'interval_length': 90, 'no_of_checkpoints': 203, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 90, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+Found 2 datasets corresponding to interval of length 100 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 2000000, 'upper_bound': 3000000, 'interval_length': 100, 'no_of_checkpoints': 101, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 100, 'no_of_checkpoints': 201, 'contents': ['data']}
+```
+
+```python
+for H in HH:
+    analyze(getexp20[H])
+```
+```python
+for H in HH:
+    compare(getexp20[H])
+```
+
+```python
+H = 90 # 20,30,40,50,70,80,200
+X = getexp20[H]
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C[1:]:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(cp):
+    ax.clear()
+
+    mu = X['statistics'][cp]['mean']
+    sigma = X['statistics'][cp]['var']
+    med = X['statistics'][cp]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][cp]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0]-0.5, hor_axis[-1]+0.5), ylim=(0,np.ceil(100*y_max)/100 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][cp].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    B = cp
+    N = (A + B)/2
+    p_alt = 1/np.log(N)
+    p = 1/(np.log(N) - 1)
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    #ax.plot(x, pois_pmf(H,x,H*p), 'r--',zorder=3.5, label=r'$\mathrm{Pois}(\lambda)$')
+    #ax.plot(x, norm.pdf(x,H*p,np.sqrt(H*p*(1 - p))), 'g--',zorder=3.5)
+    ax.plot(x, binom_pmf(H,x,p_alt), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda^*/H)$')
+    if interval_type == 'overlap':
+        ax.plot(x, frei_alt(H,x,H*p_alt), 'b--',zorder=3.5, label=r'$\mathrm{F^*}(H,m,\lambda^*)$')
+        #ax.plot(x, frei(H,x,H*p), '--', color='green', zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+    
+    # Overlay information
+    if interval_type == 'overlap':
+        if B != C[-1]:
+            ax.text(0.70,0.18,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                    +  fr'$A < a \leq B$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$A = {A}$' + '\n\n' 
+                    + fr'$B = {B}$' + '\n\n' 
+                    + fr'$N = (A + B)/2$' + '\n\n' 
+                    + fr'$\lambda^* = H/\log N = {H*p_alt:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' 
+                    + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+        if B == C[-1]:
+            ax.text(0.74,0.18,fr'$X = \pi(a + H) - \pi(a)$' + '\n\n' 
+                    + fr'$N - M < a \leq N + M$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$N = [\exp(20)]$' + '\n\n' 
+                    + fr'$M = {int(B - N)}$' + '\n\n' 
+                    + fr'$\lambda^* = H/\log N = {H*p_alt:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' 
+                    + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)            
+    if interval_type == 'disjoint':
+        ax.text(0.72,0.1,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                + fr'$a = A + kH$' + '\n\n' 
+                + fr'$0 \leq k \leq (B - A)/H$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + fr'$A = {A}$' + '\n\n' 
+                + fr'$B = {B}$' + '\n\n' 
+                + fr'$N = (A + B)/2$' + '\n\n' 
+                + fr'$\lambda = H/\log N = {H*p_alt:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+
+    
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C[1:], interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+
+![SegmentLocal](images/exp20alt_H_90.png)
+
+```python
+# Save a video of the animation.
+from IPython.display import HTML
+
+HTML(X_anim.to_html5_video())
+```
+
+<a id='eg5worked'></a>
+### Example 5
+
+```python
+N = int(np.exp(20))
+M = 10**5
+H = 76
+A = N - M
+B = N + M
+step = 10**3
+C = list(range(A, B + 1, step))
+N_exp20_H_76 = intervals(C, H)
+```
+```python
+N_exp20_H_76 = retrieve(76)
+```
+```
+Found 1 dataset corresponding to interval of length 76 (overlap intervals).
+
+ 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 76, 'no_of_checkpoints': 201, 'contents': ['data']}
+```
+
+```python
+analyze(N_exp20_H_76)
+```
+```
+{'header': {'interval_type': 'overlap',
+  'lower_bound': 485065195,
+  'upper_bound': 485265195,
+  'interval_length': 76,
+  'no_of_checkpoints': 201,
+  'contents': ['data', 'distribution', 'statistics']},
+ 'data': {485065195: {0: 0,
+ ...
+```
+
+```python
+X = N_exp20_H_76
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C[1:]:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(cp):
+    ax.clear()
+
+    mu = X['statistics'][cp]['mean']
+    sigma = X['statistics'][cp]['var']
+    med = X['statistics'][cp]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][cp]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0]-0.5, hor_axis[-1]+0.5), ylim=(0,np.ceil(100*y_max)/100 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][cp].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    B = cp
+    N = (A + B)/2    
+    p = 1/(np.log(N) - 1)
+    p_alt = 1/np.log(N)
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    #ax.plot(x, pois_pmf(H,x,H*p), 'r--',zorder=3.5, label=r'$\mathrm{Pois}(\lambda)$')
+    #ax.plot(x, norm.pdf(x,H*p,np.sqrt(H*p*(1 - p))), 'g--',zorder=3.5)
+    ax.plot(x, binom_pmf(H,x,p), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda/H)$')
+    if interval_type == 'overlap':
+        #ax.plot(x, frei_alt(H,x,H*p_alt), 'b--',zorder=3.5, label=r'$\mathrm{F^*}(H,m,\lambda^*)$')
+        ax.plot(x, frei(H,x,H*p), '--', color='green', zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+    
+    # Overlay information
+    if interval_type == 'overlap':
+        if B != C[-1]:
+            ax.text(0.70,0.18,fr'$X = \pi(a + H) - \pi(a)$, ' 
+                    +  fr'$A < a \leq B$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$A = {A}$' + '\n\n' 
+                    + fr'$B = {B}$' + '\n\n' 
+                    + fr'$N = (A + B)/2$' + '\n\n' 
+                    + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' 
+                    + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+        if B == C[-1]:
+            ax.text(0.74,0.18,fr'$X = \pi(a + H) - \pi(a)$' + '\n\n' 
+                    + fr'$N - M < a \leq N + M$' + '\n\n' 
+                    + fr'$H = {H}$' + '\n\n' 
+                    + fr'$N = [\exp(20)]$' + '\n\n' 
+                    + fr'$M = {int(B - N)}$' + '\n\n' 
+                    + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                    + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                    + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                    + fr'median : ${med}$' + '\n\n' + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)            
+    if interval_type == 'disjoint':
+        ax.text(0.72,0.1,fr'$X = \pi(a + H) - \pi(a)$, ' + fr'$a = A + kH$' + '\n\n' 
+                + fr'$0 \leq k \leq (B - A)/H$' + '\n\n' + fr'$H = {H}$' + '\n\n' 
+                + fr'$A = {A}$' + '\n\n' + fr'$B = {B}$' + '\n\n' + fr'$N = (A + B)/2$' + '\n\n' 
+                + fr'$\lambda = H/\log N = {H*p:.5f}$' + '\n\n' + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' + fr'median : ${med}$' + '\n\n' + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+
+    
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C[1:], interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+![SegmentLocal](images/exp20_H_76.png)
+
+```python
+# Save a video of the animation.
+from IPython.display import HTML
+
+HTML(X_anim.to_html5_video())
+```
+
+```python
+# from matplotlib.animation import PillowWriter
+
+# Save the animation as an animated GIF
+
+# f = r"xxx\images\exp20_H_76.gif" 
+# X_anim.save(f, dpi=100, writer='imagemagick', extra_args=['-loop','1'], fps=10)
+
+# extra_args=['-loop','1'] for no looping, '0' for looping.
+
+# f = r"xxx\images\exp20_H_76_loop.gif" 
+# X_anim.save(f, dpi=100, writer='imagemagick', extra_args=['-loop','0'], fps=10)
+
+# MovieWriter stderr:
+# magick.exe: unable to extend cache '-': No space left on device @ error/cache.c/OpenPixelCache/3914.
+```
+
+<a id='extensions'></a>
+### Extensions
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Worked example](#worked) | ↓ [References](#references) </sup>
+
+To get some insight into what's going on here, it may help to know exactly which intervals contain a given number of primes. We can add a few lines to our code in order to output a list of $a$ for which $(a, a + H]$ contains exactly $m$ primes, for $m$ in a given list of interest.
+
+```python
+def overlap_extension(A,B,H,M):
+    P = postponed_sieve()
+    Q = postponed_sieve()
+    output = { m : 0 for m in range(H + 1) } 
+    show_me = {m : [] for m in M}
+    a = A + 1 
+    p, q = next(P), next(Q) 
+    while p < a + 1:
+        p, q = next(P), next(Q) 
+    m = 0 
+    while q < a + H + 1: 
+        m += 1
+        q = next(Q) 
+    while p < B + 1:
+        if m in M:
+            show_me[m].append(a)
+        output[m] += 1    
+        b, c = p - a, q - (a + H) 
+        if m in M:
+            show_me[m].extend([x for x in range(a + 1,a + min(b,c))])
+        output[m] = output[m] + min(b,c) - 1
+        if b == c:
+            a = p
+            p = next(P)
+        if b < c:
+            a, m = p, m - 1
+            p = next(P)
+        if c < b:
+            a, m = a + c, m + 1
+        while q < a + H + 1:
+            q = next(Q)
+    while a < B + 1: 
+        if m in M:
+            show_me[m].append(a)
+        output[m] += 1
+        b, c = p - a, q - (a + H) 
+        if a + min(b,c) > B: 
+            if m in M:
+                show_me[m].extend([x for x in range(a + 1,B + 1)])
+            output[m] = output[m] + B - a
+            break
+        else:  
+            if m in M:
+                show_me[m].extend([x for x in range(a + 1,a + c)])
+            output[m] = output[m] + c - 1
+            a, m = a + c, m + 1
+            while q < a + H + 1:
+                q = next(Q)
+    output = { m : output[m] for m in output.keys() if output[m] != 0}
+    return show_me, output
+```
+
+```python
+overlap_extension(1000,2000,50,[3,11])
+```
+```
+({3: [1307, 1308, 1309, 1310, 1321, 1322, 1327, 1328, 1329, 1330],
+  11: [1271, 1272, 1273, 1274, 1275, 1276, 1277, 1278]},
+ {3: 10, 4: 94, 5: 138, 6: 202, 7: 216, 8: 178, 9: 136, 10: 18, 11: 8})
+```
+
+<a id='references'></a>
+### References
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Extensions](#extensions) </sup>
+
+[1] Freiberg, T. "[A note on the distribution of primes in intervals](http://dx.doi.org/10.1007/978-3-319-92777-0_2)." pp 23–44 in _Irregularities in the distribution of prime numbers_. Eds. J. Pintz and M. Th. Rassias. Springer, 2018.
+
+[2] Gallagher, P. X. "[On the distribution of primes in short intervals](http://dx.doi.org/10.1112/S0025579300016442)." _Mathematika_ 23(1):4–9, 1976.
+
+[3] Montgomery, H. L. and K. Soundararajan. "[Primes in short intervals.](http://dx.doi.org/10.1007/s00220-004-1222-4)." _Commun. Math. Phys._ 252(1-3):589–617, 2004.
+
+[4] Tschinkel, Y. "[About the cover: on the distribution of primes–Gauss' tables](https://doi.org/10.1090/S0273-0979-05-01096-7)." Bull. Amer. Math. Soc. 43(1)89–91, 2006.
