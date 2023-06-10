@@ -8,7 +8,7 @@ The histogram shows the distribution of primes in intervals. Cramér's random mo
 
 As suggested in [[1]](#references), our prediction is based on the Hardy-Littlewood prime tuples conjecture, inclusion-exclusion, and a precise estimate, due to Montgomery and Soundararajan [[3]](#references), for a certain average involving the singular series of the prime tuples conjecture. 
 
-![SegmentLocal](images/exp20/exp20_H_76.png)
+![SegmentLocal](images/exp20_H_76.png)
 
 The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ the "probability" that an integer close to $N$ is prime,
 
