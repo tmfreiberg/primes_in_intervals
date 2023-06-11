@@ -2810,97 +2810,143 @@ Let's make a human-readable display of the data we have gathered.
 ```python
 import pandas as pd
 
+import pandas as pd
+
 def display(dataset, orient='index', description='on', zeroth_item='show', count='cumulative', comparisons='off'): 
     # DataFrame orient argument either 'index' or 'columns'.
     # description either 'off' or not (defaults to 'on').
     # zeroth_item either 'no show' or not (defaults to 'show').
     # count either 'partition' or not (defaults to 'cumulative')
     # comparisons either 'absolute', 'probabilities', or not (defaults to 'off').
-    if comparisons == 'absolute' or comparisons == 'probabilities':
-        if comparisons == 'absolute':
-            index = 1
-        if comparisons == 'probabilities':
-            index = 0
-        if 'comparison' not in dataset.keys():
-            return print('First compare the data to something with the compare function.')
-        if count == 'partition':
-            return print('We only compare cumulative (non-partitioned) data.')
-        C = list(dataset['comparison'].keys())
-        C.sort()
-        output = { C[0] : { m : 0 for m in dataset['comparison'][C[0]].keys()} }
-        for c in C[1:]:
-            output[c] = {}
-            for m in dataset['comparison'][c].keys():
-                output[c][m] = dataset['comparison'][c][m][index]
-        
-        df = pd.DataFrame.from_dict(output, orient=orient)
-    
-    else:
-        if count == 'partition':
-            if 'partition' not in dataset.keys():
-                return print('First partition the data.')
-            datakey = 'partition'        
-        else:
-            if 'data' not in dataset.keys():
-                return print('First unpartition the data.')
-            datakey = 'data' 
-        C = list(dataset[datakey].keys())
-        C.sort()
-        output = {}
-        # In the case of disjoint intervals, we can display 'prime tallies' for each checkpoint.
-        # (Gives the total number of primes from C[0] to C[k] in the cumulative count case,
-        # or from C[k-1] to C[k] in the partial count case).
-        # In the case of displaying the partitioned data (count 'partial' i.e. non-cumulative), 
-        # we can show totals at the end of each row/column (depending on the orientation), giving the 
-        # total number of intervals between A and B that contain m primes.
-        # (In the cumulative count case, the totals are just the last row/column anyway.)
-        for c in C:
-            output[c] = {}
-            for m in dataset[datakey][c].keys():
-                output[c][m] = dataset[datakey][c][m]        
-        if dataset['header']['interval_type'] == 'disjoint':      
-            for c in C:
-                output[c]['prime_tally'] = {}
-                tally = sum([m*dataset[datakey][c][m] for m in dataset[datakey][c].keys()])
-                output[c]['prime_tally'] = tally        
-        if count == 'partition':
-            output['totals'] = {}
-            for m in dataset[datakey][C[-1]].keys():
-                output['totals'][m] = sum([dataset[datakey][c][m] for c in C])
-            if dataset['header']['interval_type'] == 'disjoint':
-                #output['totals']['prime_tally'] = sum([m*output['totals'][m] for m in dataset[datakey][C[-1]].keys()])
-                output['totals']['prime_tally'] = sum([output[c]['prime_tally'] for c in C]) # should be the same as above
-        
-        df = pd.DataFrame.from_dict(output, orient=orient)    
-        
-    if description == 'off':
-        if zeroth_item == 'no show':
-            if orient == 'columns':
-                A = dataset['header']['lower_bound']
-                return df.loc[:, df.columns!=A]
-            else: 
-                return df.tail(-1)
-        else:
-            return df            
-    else:
-        interval_type = dataset['header']['interval_type']
-        A = dataset['header']['lower_bound']
-        B = dataset['header']['upper_bound']
-        H = dataset['header']['interval_length']
-        if count == 'partition':
-            counts = 'non-cumulative'
-        else:
-            counts = 'cumulative'
-        text = f'Interval type: {interval_type}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
+    if 'data' in dataset.keys():
         if comparisons == 'absolute' or comparisons == 'probabilities':
-            text = text + 'In tuple (a,b,c,d), a is actual data, b is Binomial prediction, c is frei prediction, and d is frei_alt prediction.'
-        if zeroth_item == 'no show':
-            if orient == 'columns':
-                return df.loc[:, df.columns!=A].style.set_caption(text)
-            else:
-                return df.tail(-1).style.set_caption(text)
+            if comparisons == 'absolute':
+                index = 1
+            if comparisons == 'probabilities':
+                index = 0
+            if 'comparison' not in dataset.keys():
+                return print('First compare the data to something with the compare function.')
+            if count == 'partition':
+                return print('We only compare cumulative (non-partitioned) data.')
+            C = list(dataset['comparison'].keys())
+            C.sort()
+            output = { C[0] : { m : 0 for m in dataset['comparison'][C[0]].keys()} }
+            for c in C[1:]:
+                output[c] = {}
+                for m in dataset['comparison'][c].keys():
+                    output[c][m] = dataset['comparison'][c][m][index]
+
+            df = pd.DataFrame.from_dict(output, orient=orient)
+
         else:
-            return df.style.set_caption(text)
+            if count == 'partition':
+                if 'partition' not in dataset.keys():
+                    return print('First partition the data.')
+                datakey = 'partition'        
+            else:
+                if 'data' not in dataset.keys():
+                    return print('First unpartition the data.')
+                datakey = 'data' 
+            C = list(dataset[datakey].keys())
+            C.sort()
+            output = {}
+            # In the case of disjoint intervals, we can display 'prime tallies' for each checkpoint.
+            # (Gives the total number of primes from C[0] to C[k] in the cumulative count case,
+            # or from C[k-1] to C[k] in the partial count case).
+            # In the case of displaying the partitioned data (count 'partial' i.e. non-cumulative), 
+            # we can show totals at the end of each row/column (depending on the orientation), giving the 
+            # total number of intervals between A and B that contain m primes.
+            # (In the cumulative count case, the totals are just the last row/column anyway.)
+            for c in C:
+                output[c] = {}
+                for m in dataset[datakey][c].keys():
+                    output[c][m] = dataset[datakey][c][m]        
+            if dataset['header']['interval_type'] == 'disjoint':      
+                for c in C:
+                    output[c]['prime_tally'] = {}
+                    tally = sum([m*dataset[datakey][c][m] for m in dataset[datakey][c].keys()])
+                    output[c]['prime_tally'] = tally        
+            if count == 'partition':
+                output['totals'] = {}
+                for m in dataset[datakey][C[-1]].keys():
+                    output['totals'][m] = sum([dataset[datakey][c][m] for c in C])
+                if dataset['header']['interval_type'] == 'disjoint':
+                    #output['totals']['prime_tally'] = sum([m*output['totals'][m] for m in dataset[datakey][C[-1]].keys()])
+                    output['totals']['prime_tally'] = sum([output[c]['prime_tally'] for c in C]) # should be the same as above
+
+            df = pd.DataFrame.from_dict(output, orient=orient)    
+
+        if description == 'off':
+            if zeroth_item == 'no show':
+                if orient == 'columns':
+                    A = dataset['header']['lower_bound']
+                    return df.loc[:, df.columns!=A]
+                else: 
+                    return df.tail(-1)
+            else:
+                return df            
+        else:
+            interval_type = dataset['header']['interval_type']
+            A = dataset['header']['lower_bound']
+            B = dataset['header']['upper_bound']
+            H = dataset['header']['interval_length']
+            if count == 'partition':
+                counts = 'non-cumulative'
+            else:
+                counts = 'cumulative'
+            text = f'Interval type: {interval_type}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
+            if comparisons == 'absolute' or comparisons == 'probabilities':
+                text = text + 'In tuple (a,b,c,d), a is actual data, b is Binomial prediction, c is frei prediction, and d is frei_alt prediction.'
+            if zeroth_item == 'no show':
+                if orient == 'columns':
+                    return df.loc[:, df.columns!=A].style.set_caption(text)
+                else:
+                    return df.tail(-1).style.set_caption(text)
+            else:
+                return df.style.set_caption(text)
+    if 'nested_interval_data' in dataset.keys():
+        if comparisons == 'absolute' or comparisons == 'probabilities':
+            if comparisons == 'absolute':
+                index = 1
+            if comparisons == 'probabilities':
+                index = 0
+            if 'comparison' not in dataset.keys():
+                return print('First compare the data to something with the compare function.')        
+        C = list(dataset['nested_interval_data'].keys())
+        H = dataset['header']['interval_length']
+        interval_type = dataset['header']['interval_type']
+        M = list(dataset['nested_interval_data'][C[-1]].keys())         
+        output = {}
+        for i in range(len(C)):
+            if interval_type == 'overlap':
+                output[i] = { 'B - A' : C[i][1] - C[i][0], 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+            if interval_type == 'disjoint':
+                output[i] = { '(B - A)/H' : (C[i][1] - C[i][0])//H, 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+            if not(comparisons == 'absolute' or comparisons == 'probabilities'):
+                for m in M:
+                    output[i][m] = dataset['nested_interval_data'][C[i]][m]
+                if interval_type == 'disjoint':
+                    tally = sum([m*output[i][m] for m in M])
+                    output[i]['prime tally'] = tally
+            else:
+                for m in M:
+                    output[i][m] = dataset['comparison'][C[i]][m][index]
+#                 Mexpand = []
+#                 for m in M:
+#                     Mexpand.extend([m,f'B{m}', f'F{m}', f'F*{m}'])
+#                 j = 0
+#                 while j < len(Mexpand):
+#                     m = Mexpand[j]
+#                     B = Mexpand[j + 1]
+#                     F = Mexpand[j + 2]
+#                     Falt = Mexpand[j + 3]
+#                     output[i][m] = dataset['comparison'][C[i]][m][index][0]
+#                     output[i][B] = dataset['comparison'][C[i]][m][index][1]
+#                     output[i][F] = dataset['comparison'][C[i]][m][index][2]
+#                     output[i][Falt] = dataset['comparison'][C[i]][m][index][3]
+#                     j += 4
+        df = pd.DataFrame.from_dict(output, orient=orient)
+        return df
 ```
 
 <a id='eg1display'></a>
@@ -2931,6 +2977,28 @@ Interval type: overlap. Lower bound: 2000000. Upper bound: 3000000. Interval len
 2	38	20	122	100	108	62	70	138	80	190	82	110	26	84	58	40	130	112	70	196	102	48	102	60	102	76	18	30	126	86	98	84	70	104	184	152	54	78	104	136	146	56	40	56	50	106	80	156	148	104	76	104	142	218	80	34	62	32	68	88	90	160	184	94	138	14	56	174	98	74	124	30	128	156	90	164	128	42	96	52	38	82	164	52	190	58	70	112	48	126	86	132	200	58	136	142	14	104	126	162	9688
 3	314	136	438	160	242	304	422	342	272	260	344	424	288	194	232	208	376	200	242	338	318	346	376	394	216	282	302	254	340	244	276	306	238	348	404	324	200	658	334	320	434	292	286	430	186	310	422	480	256	334	406	446	304	518	328	216	156	204	300	206	340	520	428	240	352	118	398	438	408	264	370	352	486	334	188	282	412	358	346	386	238	362	458	210	538	256	262	432	274	310	326	358	424	410	522	462	428	350	328	326	33024
 ...
+```
+
+```python
+display(nest_data1disj)
+```
+```
+(B - A)/H	A	B	H	0	1	2	3	4	5	...	8	9	10	11	12	13	14	15	17	prime tally
+0	200	2490000	2510000	100	0	0	4	6	11	27	...	33	21	5	2	3	2	0	0	0	1350
+1	400	2480000	2520000	100	0	2	8	9	35	49	...	64	43	17	9	4	4	0	0	0	2712
+2	600	2470000	2530000	100	0	3	9	20	52	67	...	101	67	30	14	5	4	0	0	0	4081
+3	800	2460000	2540000	100	0	3	11	29	69	99	...	121	80	48	20	8	4	0	0	0	5421
+4	1000	2450000	2550000	100	0	3	12	36	84	126	...	154	101	57	23	9	6	0	0	0	6778
+...
+```
+
+```python
+display(nest_data1olap,comparisons='absolute')
+```
+```
+B - A	A	B	H	0	1	2	3	4	5	...	9	10	11	12	13	14	15	16	17	18
+0	20000	2490000	2510000	100	(0, 10, -8, -19)	(2, 81, -15, -56)	(180, 317, 80, 23)	(740, 815, 476, 471)	(1350, 1552, 1282, 1390)	(2728, 2341, 2332, 2525)	...	(2132, 2251, 2580, 2421)	(880, 1609, 1714, 1559)	(334, 1034, 963, 862)	(126, 602, 441, 404)	(66, 320, 145, 153)	(6, 156, 11, 39)	(0, 70, -30, -1)	(0, 29, -33, -9)	(0, 11, -23, -8)	(0, 4, -13, -4)
+1	40000	2480000	2520000	100	(0, 20, -16, -38)	(148, 163, -31, -113)	(432, 635, 160, 46)	(1442, 1630, 952, 943)	(2962, 3105, 2565, 2780)	(5350, 4683, 4664, 5051)	...	(4398, 4503, 5160, 4842)	(2152, 3218, 3429, 3118)	(840, 2068, 1926, 1724)	(314, 1204, 882, 808)	(90, 640, 291, 306)	(6, 312, 23, 78)	(0, 140, -61, -2)	(0, 58, -66, -19)	(0, 22, -46, -16)	(0, 8, -27, -9)
 ```
 
 <a id='eg2display'></a>
@@ -2969,6 +3037,27 @@ Interval type: overlap. Lower bound: 65557969. Upper bound: 65761969. Interval l
 65557969	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 65558989	(0.0, 0.005778701344443381, 0.000932176816482944, -0.000274753949948496)	(0.0392156862745098, 0.030702319208985536, 0.0162667183428929, 0.0147023853235282)	(0.12549019607843137, 0.08060138050813222, 0.0638839571106127, 0.0656644335066840)	(0.17352941176470588, 0.1393866964422863, 0.135503517530820, 0.141330163736975)	(0.19117647058823528, 0.17860647258590573, 0.193582650718642, 0.198980306616352)	(0.20784313725490197, 0.18085653880006008, 0.205698038678704, 0.206282102722769)	(0.09607843137254903, 0.15072835483128574, 0.171435216785510, 0.167359058604099)	(0.07254901960784314, 0.10632760152069547, 0.115269055868157, 0.109909302065536)	(0.05, 0.06479964704118212, 0.0630520825794851, 0.0593502753929423)	(0.03431372549019608, 0.03465316155125581, 0.0275328435090937, 0.0262669539437814)	(0.00980392156862745, 0.016461843276652573, 0.00876751064257008, 0.00917009947316973)	(0.0, 0.007015668311226328, 0.00114426938529099, 0.00214810123188904)	(0.0, 0.002704216940090859, -0.000943991229544109, -1.60931581594569e-5)	(0.0, 0.0009491679036882558, -0.00100071604751012, -0.000376006860067233)
 ...
+```
+
+```python
+display(nest_data2disj,comparisons='probabilities')
+```
+```
+(B - A)/H	A	B	H	0	1	2	3	4	5	6	7	8	9	10	11	12
+0	22	65658979	65660959	90	(0.0, 0.004269681843779133, 0.0003966344376837...	(0.045454545454545456, 0.02401696037439715, 0....	(0.045454545454545456, 0.06679717105002388, 0....	(0.09090909090909091, 0.12246148027438541, 0.1...	(0.18181818181818182, 0.16647107476975395, 0.1...	(0.18181818181818182, 0.1789564054008789, 0.20...	(0.18181818181818182, 0.15845098396940777, 0.1...	(0.2727272727272727, 0.11883823799259051, 0.13...	(0.0, 0.07705916995839368, 0.0785587454927965,...	(0.0, 0.043880916232043675, 0.0381723019329632...	(0.0, 0.02221471384537604, 0.0143802762415794,...	(0.0, 0.010097597203763622, 0.0033588253937842...	(0.0, 0.00415474051667502, -0.0004236606410890...
+1	44	65657989	65661949	90	(0.0, 0.004269681843779133, 0.0003966344376837...	(0.06818181818181818, 0.02401696037439715, 0.0...	(0.06818181818181818, 0.06679717105002388, 0.0...	(0.11363636363636363, 0.12246148027438541, 0.1...	(0.20454545454545456, 0.16647107476975395, 0.1...	(0.20454545454545456, 0.1789564054008789, 0.20...	(0.18181818181818182, 0.15845098396940777, 0.1...	(0.13636363636363635, 0.11883823799259051, 0.1...	(0.022727272727272728, 0.07705916995839368, 0....	(0.0, 0.043880916232043675, 0.0381723019329632...	(0.0, 0.02221471384537604, 0.0143802762415794,...	(0.0, 0.010097597203763622, 0.0033588253937842...	(0.0, 0.00415474051667502, -0.0004236606410890..
+```
+
+```python
+display(nest_data2olap).tail()
+```
+```
+B - A	A	B	H	0	1	2	3	4	5	6	7	8	9	10	11	12	13
+96	192060	65563939	65755999	90	408	3120	12408	26114	38316	40653	32506	21257	10560	4770	1528	358	54	8
+97	194040	65562949	65756989	90	414	3200	12470	26294	38664	41097	33038	21447	10674	4794	1528	358	54	8
+98	196020	65561959	65757979	90	414	3200	12517	26544	39044	41519	33382	21728	10880	4834	1538	358	54	8
+99	198000	65560969	65758969	90	414	3212	12660	26885	39450	41874	33758	21938	10985	4860	1544	358	54	8
+100	199980	65559979	65759959	90	414	3212	12769	27089	40018	42404	34116	22080	11054	4860	1544	358	54	8
 ```
 
 <a id='eg3display'></a>
