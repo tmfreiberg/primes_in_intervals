@@ -58,6 +58,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 [Retrieve](#retrieve)<br> .......... [Example 1](#eg1retrieve) | [Example 2](#eg2retrieve)<br>
 [Narrow](#narrow)<br> .......... [Example 1](#eg1narrow) | [Example 2](#eg2narrow)<br>
 [Partition](#partition)<br> .......... [Example 1](#eg1partition) | [Example 2](#eg2partition)<br>
+[Nested intervals](#nest)<br> .......... [Example 1](#eg1nest) | [Example 2](#eg2nest)<br>
 [Analyze](#analyze)<br> .......... [Example 1](#eg1analyze) | [Example 2](#eg2analyze)<br>
 [Compare](#compare)<br> .......... [Example 1](#eg1compare) | [Example 2](#eg2compare)<br>
 [Display](#display)<br> .......... [Example 1](#eg1display) | [Example 2](#eg2display) | [Example 3](#eg3display) (table from Gauss's _Nachlass_)<br>
@@ -1357,7 +1358,7 @@ narrow_data2olap
 
 <a id='partition'></a>
 ### Partition
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Narrow](#narrow) | ↓ [Analyze](#analyze) </sup>
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Narrow](#narrow) | ↓ [Nested intervals](#nested) </sup>
 
 We may wish to present our data in a "partitioned" form, i.e. if we have data on intervals $(A,C_1], (A, C_2],\ldots, (A,C_k]$, we may wish to express this as data for $(A, C_1], (C_1,C_2],\ldots,(C_{k-1},C_k]$. We do this with the ```partition``` function. We can reverse the process with the ```unpartition``` function.
 
@@ -1627,9 +1628,221 @@ retrieve_data2olap['header'], retrieve_data2olap['partition']
    ...
 ```
 
+<a id='nest'></a>
+### Nested intervals
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Partition](#partition) | ↓ [Analyze](#analyze) </sup>
+
+```python
+# Input a dataset with data corresponding to checkpoints [C_0,...,C_K], where C_0 < C_1 < ... < C_K. 
+# Output a NEW dataset with data corresponding to the intervals (assuming K = 2k + 1 is odd)
+# (C_k, C_{k + 1}], (C_{k-1}, C_{k + 2}], ..., (C_0, C_K].
+# Note that each interval is contained in the next, so these are "nested" intervals.
+# If the C's form an arithmetic progression, then each of the nested intervals share a common midpoint, N (say).
+# Thus, the density of primes in these intervals is approximately 1/(log N - 1).
+# However, this gets worse and worse as an approximation for all primes in an interval as the interval get wider.
+# Thus, there is a trade-off between having a better approximation to the density of primes in an interval, and 
+# the number of datapoints (length of the interval).
+# It will be interesting to see how these play off against each other.
+
+def nest(dataset):
+    if 'data' not in dataset.keys():
+        if 'partition' not in dataset.keys():            
+            return print('No data to work with, or data is not in a suitable configuration for nesting.')
+        else:
+            unpartition(dataset)
+    C = list(dataset['data'].keys())
+    C.sort()
+    if len(C) < 3:
+        return print('At least three checkpoints needed for a nontrivial nesting.')
+    interval_type = dataset['header']['interval_type']
+    A = dataset['header']['lower_bound']
+    B = dataset['header']['upper_bound']
+    H = dataset['header']['interval_length']
+    no_of_checkpoints = dataset['header']['no_of_checkpoints']
+    nest = { 'header' : {'nested_intervals' : 0, 'interval_type' : interval_type, 'lower_bound': A, 'upper_bound' : B, 'interval_length' : H, 'no_of_checkpoints' : no_of_checkpoints, 'contents' : [] } }
+    nest['nested_interval_data'] = {}
+    if len(C)%2 == 1:
+        C.pop(len(C)//2)
+    k = len(C)//2
+    M = list(dataset['data'][C[-1]].keys())
+    for i in range(k):
+        nest['nested_interval_data'][C[k - i - 1], C[k + i]] = {}
+        for m in M:
+            nest['nested_interval_data'][C[k - i - 1], C[k + i]][m] = dataset['data'][C[k + i]][m] - dataset['data'][C[k - i - 1]][m]
+    nest['header']['nested_intervals'] = k
+    nest['header']['contents'].append('nested_interval_data')
+    return nest
+```
+
+<a id='eg1nest'></a>
+#### Example 1
+
+```python
+get_data1disj = retrieve(100,'disjoint')
+```
+```
+Found 1 dataset corresponding to interval of length 100 (disjoint intervals).
+
+ 'header' : {'interval_type': 'disjoint', 'lower_bound': 2000000, 'upper_bound': 3000000, 'interval_length': 100, 'no_of_checkpoints': 101, 'contents': ['data']}```
+
+```python
+nest_data1disj = nest(get_data1disj)
+nest_data1disj
+```
+```
+{'header': {'nested_intervals': 50,
+  'interval_type': 'disjoint',
+  'lower_bound': 2000000,
+  'upper_bound': 3000000,
+  'interval_length': 100,
+  'no_of_checkpoints': 101,
+  'contents': ['nested_interval_data']},
+ 'nested_interval_data': {(2490000, 2510000): {0: 0,
+   1: 0,
+   2: 4,
+   3: 6,
+   4: 11,
+   5: 27,
+   6: 44,
+   7: 42,
+   8: 33,
+   9: 21,
+   10: 5,
+   11: 2,
+   12: 3,
+   13: 2,
+   14: 0,
+   15: 0,
+   17: 0},
+  (2480000, 2520000): {0: 0,
+   1: 2,
+   2: 8,
+   3: 9,
+   4: 35,
+   ...
+```
+
+```python
+get_data1olap = retrieve(100,'overlap')[0]
+```
+```
+Found 3 datasets corresponding to interval of length 100 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 2000000, 'upper_bound': 3000000, 'interval_length': 100, 'no_of_checkpoints': 101, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 100, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+
+ [2] 'header' : {'interval_type': 'overlap', 'lower_bound': 1318715734, 'upper_bound': 1318915734, 'interval_length': 100, 'no_of_checkpoints': 200, 'contents': ['data']}
+```
+
+```python
+nest_data1olap = nest(get_data1olap)
+nest_data1olap
+```
+```
+{'header': {'nested_intervals': 50,
+  'interval_type': 'overlap',
+  'lower_bound': 2000000,
+  'upper_bound': 3000000,
+  'interval_length': 100,
+  'no_of_checkpoints': 101,
+  'contents': ['nested_interval_data']},
+ 'nested_interval_data': {(2490000, 2510000): {0: 0,
+   1: 2,
+   2: 180,
+   3: 740,
+   4: 1350,
+   5: 2728,
+   6: 4148,
+   ...
+```
+
+<a id='eg2nest'></a>
+#### Example 2
+
+```python
+get_data2disj = retrieve(90,'disjoint')
+```
+```
+Found 1 dataset corresponding to interval of length 90 (disjoint intervals).
+
+ 'header' : {'interval_type': 'disjoint', 'lower_bound': 65559979, 'upper_bound': 65759959, 'interval_length': 90, 'no_of_checkpoints': 203, 'contents': ['data']}
+```
+
+```python
+nest_data2disj = nest(get_data2disj)
+nest_data2disj
+```
+```
+{'header': {'nested_intervals': 101,
+  'interval_type': 'disjoint',
+  'lower_bound': 65559979,
+  'upper_bound': 65759959,
+  'interval_length': 90,
+  'no_of_checkpoints': 203,
+  'contents': ['nested_interval_data']},
+ 'nested_interval_data': {(65658979, 65660959): {0: 0,
+   1: 1,
+   2: 1,
+   3: 2,
+   4: 4,
+   5: 4,
+   ...
+```
+
+```python
+get_data2olap = retrieve(90,'overlap')[0]
+```
+```
+Found 3 datasets corresponding to interval of length 90 (overlap intervals).
+
+ [0] 'header' : {'interval_type': 'overlap', 'lower_bound': 65559979, 'upper_bound': 65759959, 'interval_length': 90, 'no_of_checkpoints': 203, 'contents': ['data']}
+
+
+ [1] 'header' : {'interval_type': 'overlap', 'lower_bound': 485065195, 'upper_bound': 485265195, 'interval_length': 90, 'no_of_checkpoints': 201, 'contents': ['data']}
+
+
+ [2] 'header' : {'interval_type': 'overlap', 'lower_bound': 1318715734, 'upper_bound': 1318915734, 'interval_length': 90, 'no_of_checkpoints': 200, 'contents': ['data']}
+```
+
+```python
+nest_data2olap = nest(get_data2olap)
+nest_data2olap
+```
+```
+{'header': {'nested_intervals': 101,
+  'interval_type': 'overlap',
+  'lower_bound': 65559979,
+  'upper_bound': 65759959,
+  'interval_length': 90,
+  'no_of_checkpoints': 203,
+  'contents': ['nested_interval_data']},
+ 'nested_interval_data': {(65658979, 65660959): {0: 0,
+   1: 26,
+   2: 142,
+   3: 271,
+   4: 328,
+   5: 507,
+   6: 322,
+   7: 176,
+   8: 122,
+   9: 44,
+   10: 42,
+   11: 0,
+   12: 0,
+   13: 0},
+  (65657989, 65661949): {0: 10,
+   1: 146,
+   2: 386,
+   3: 672,
+   ...
+```
+
 <a id='analyze'></a>
 ### Analyze
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Partition](#partition) | ↓ [Compare](#compare) </sup>
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Nested intervals](#nested) | ↓ [Compare](#compare) </sup>
 
 ```python
 # ANCILLARY FUNCTION
@@ -1716,26 +1929,42 @@ def dictionary_statistics(dictionary):
 # ancillary dictionary_statistics function.
 
 def analyze(dataset):
-    if 'data' not in dataset.keys():
-        return print('No data to analyze.')
     if 'distribution' in dataset.keys() and 'statistics' in dataset.keys():
         return print('Data has already been analyzed.')
-    C = list(dataset['data'].keys())
-    dataset['distribution'] = { C[0] : {} } # no meaningful statistics for the trivial item
-    dataset['statistics'] = { C[0] : {} }
-    for c in C[1:]:
-        temp_dict = dictionary_statistics(dataset['data'][c])
-        dataset['distribution'][c] = temp_dict['dist']
-        dataset['statistics'][c] = {}
-        dataset['statistics'][c]['mean'] = temp_dict['mean']
-        dataset['statistics'][c]['2ndmom'] = temp_dict['2ndmom']
-        dataset['statistics'][c]['var'] = temp_dict['var']
-        dataset['statistics'][c]['sdv'] = temp_dict['sdv']
-        dataset['statistics'][c]['med'] = temp_dict['med']
-        dataset['statistics'][c]['mode'] = temp_dict['mode']
-    dataset['header']['contents'].append('distribution')
-    dataset['header']['contents'].append('statistics')
-    return dataset
+    if 'data' in dataset.keys():    
+        C = list(dataset['data'].keys())
+        dataset['distribution'] = { C[0] : {} } # no meaningful statistics for the trivial item
+        dataset['statistics'] = { C[0] : {} }
+        for c in C[1:]:
+            temp_dict = dictionary_statistics(dataset['data'][c])
+            dataset['distribution'][c] = temp_dict['dist']
+            dataset['statistics'][c] = {}
+            dataset['statistics'][c]['mean'] = temp_dict['mean']
+            dataset['statistics'][c]['2ndmom'] = temp_dict['2ndmom']
+            dataset['statistics'][c]['var'] = temp_dict['var']
+            dataset['statistics'][c]['sdv'] = temp_dict['sdv']
+            dataset['statistics'][c]['med'] = temp_dict['med']
+            dataset['statistics'][c]['mode'] = temp_dict['mode']
+        dataset['header']['contents'].append('distribution')
+        dataset['header']['contents'].append('statistics')
+        return dataset
+    if 'nested_interval_data' in dataset.keys():    
+        C = list(dataset['nested_interval_data'].keys())
+        dataset['distribution'] = {  } 
+        dataset['statistics'] = {  }
+        for c in C:
+            temp_dict = dictionary_statistics(dataset['nested_interval_data'][c])
+            dataset['distribution'][c] = temp_dict['dist']
+            dataset['statistics'][c] = {}
+            dataset['statistics'][c]['mean'] = temp_dict['mean']
+            dataset['statistics'][c]['2ndmom'] = temp_dict['2ndmom']
+            dataset['statistics'][c]['var'] = temp_dict['var']
+            dataset['statistics'][c]['sdv'] = temp_dict['sdv']
+            dataset['statistics'][c]['med'] = temp_dict['med']
+            dataset['statistics'][c]['mode'] = temp_dict['mode']
+        dataset['header']['contents'].append('distribution')
+        dataset['header']['contents'].append('statistics')
+        return dataset
 ```
 
 <a id='eg1analyze'></a>
@@ -1857,6 +2086,49 @@ retrieve_data1disj['distribution'][2500000], retrieve_data1disj['statistics'][25
   'mode': [7]})
 ```
 
+```python
+analyze(nest_data1disj)
+nest_data1disj['distribution']
+```
+```
+{(2490000, 2510000): {0: 0.0,
+  1: 0.0,
+  2: 0.02,
+  3: 0.03,
+  4: 0.055,
+  5: 0.135,
+  6: 0.22,
+  7: 0.21,
+  8: 0.165,
+  9: 0.105,
+  10: 0.025,
+  11: 0.01,
+  12: 0.015,
+  13: 0.01,
+  14: 0.0,
+  15: 0.0,
+  17: 0.0},
+ (2480000, 2520000): {0: 0.0,
+  1: 0.005,
+  2: 0.02,
+  3: 0.0225,
+  4: 0.0875,
+  ...
+```
+
+```python
+analyze(nest_data1olap)
+nest_data1olap['statistics'][(2490000, 2510000)]
+```
+```
+{'mean': 6.7601,
+ '2ndmom': 49.3741,
+ 'var': 3.675147989999992,
+ 'sdv': 1.917067549670588,
+ 'med': 7.0,
+ 'mode': [6]}
+```
+
 <a id='eg2analyze'></a>
 #### Example 2.
 
@@ -1904,6 +2176,43 @@ analyze(retrieve_data2olap)
    2: 0,
    3: 0,
    ...
+```
+
+```python
+analyze(nest_data2disj)
+Cnest = list(nest_data2disj['nested_interval_data'].keys())
+nest_data2disj['statistics'][Cnest[0]]
+```
+```
+{'mean': 5.045454545454546,
+ '2ndmom': 28.40909090909091,
+ 'var': 2.9524793388429735,
+ 'sdv': 1.718278015585072,
+ 'med': 5.0,
+ 'mode': [7]}
+```
+
+```python
+analyze(nest_data2olap)
+Cnest = list(nest_data2olap['nested_interval_data'].keys())
+C[20], nest_data2olap['distribution'][Cnest[20]]
+```
+```
+((1318794734, 1318836734),
+ {0: 0.0012987012987012987,
+  1: 0.016378066378066377,
+  2: 0.06955266955266955,
+  3: 0.1303030303030303,
+  4: 0.197017797017797,
+  5: 0.2342953342953343,
+  6: 0.16998556998557,
+  7: 0.10134680134680135,
+  8: 0.047546897546897546,
+  9: 0.023136123136123135,
+  10: 0.0075998075998075995,
+  11: 0.001443001443001443,
+  12: 9.62000962000962e-05,
+  13: 0.0})
 ```
 
 <a id='compare'></a>
