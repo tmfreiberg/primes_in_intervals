@@ -34,6 +34,8 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 
 ![SegmentLocal](images/nachlass.jpg)
 
+![SegmentLocal](images/goldschmidt_2_3_million.png)
+
 ![SegmentLocal](images/goldschmidt_table_plot.png)
 
 <a id='contents'></a>
