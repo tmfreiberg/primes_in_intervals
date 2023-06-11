@@ -3771,6 +3771,143 @@ HTML(X_anim.to_html5_video())
 # magick.exe: unable to extend cache '-': No space left on device @ error/cache.c/OpenPixelCache/3914.
 ```
 
+<a id='eg6worked'></a>
+#### Example 6 (nested intervals)
+
+```python
+N = int(np.exp(21))
+K = 199
+k = (K - 1)//2 # = 99
+Delta = 10**3 
+D = []
+for j in range(k + 1):
+    D.extend([N - (j + 1)*Delta, N + (j + 1)*Delta])
+C = sorted(D)
+HH = list(range(20,141,10))
+EXP21 = {H : {} for H in HH}
+```
+
+```python
+for H in HH:
+    EXP21[H] = intervals(C, H)
+# Takes a few hours...
+```
+
+```python
+for H in HH:
+    save(EXP21[H])
+```
+
+```python
+NEXP21 = {}
+for H in HH:
+    NEXP21[H] = nest(EXP21[H])
+for H in HH:
+    analyze(NEXP21[H])
+```
+
+```python
+# HH = [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140]
+X = NEXP21[HH[4]]
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(c):
+    ax.clear()
+
+    mu = X['statistics'][c]['mean']
+    sigma = X['statistics'][c]['var']
+    med = X['statistics'][c]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][c]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0]-0.5, hor_axis[-1]+0.5), ylim=(0,np.ceil(1000*y_max)/1000 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][c].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    A = c[0]
+    B = c[1]
+    N = (A + B)//2
+    exponent= str(int(np.log(N)) + 1)
+    M = N - A
+    k = M//10**3
+    p = 1/(np.log(N) - 1)
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    ax.plot(x, binom_pmf(H,x,p), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda/H)$')
+    ax.plot(x, frei(H,x,H*p), '--', color='green', zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+    
+    # Overlay information
+    if B != C[-1][1]:
+        ax.text(0.75,0.15,fr'$X = \pi(a + H) - \pi(a)$' + '\n\n' 
+                +  fr'$N - M < a \leq N + M$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + r'$N = [e^{21}]$' + '\n\n' 
+                + fr'$M = 10^3k$, $k = {k}$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    if B == C[-1][1]:
+        ax.text(0.75,0.15,fr'$X = \pi(a + H) - \pi(a)$' + '\n\n' 
+                +  fr'$N - M < a \leq N + M$' + '\n\n' 
+                + fr'$H = {H}$' + '\n\n' 
+                + r'$N = [e^{21}]$' + '\n\n' 
+                + fr'$M = 10^5$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C, interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+
+![SegmentLocal](images/N_exp21_H60.png)
+
+```python
+# Save a video of the animation.
+from IPython.display import HTML
+
+HTML(X_anim.to_html5_video())
+```
+
 <a id='extensions'></a>
 ### Extensions
 <sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Worked example](#worked) | ↓ [References](#references) </sup>
