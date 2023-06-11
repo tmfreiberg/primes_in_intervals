@@ -63,7 +63,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 [Compare](#compare)<br> .......... [Example 1](#eg1compare) | [Example 2](#eg2compare)<br>
 [Display](#display)<br> .......... [Example 1](#eg1display) | [Example 2](#eg2display) | [Example 3](#eg3display) (table from Gauss's _Nachlass_)<br>
 [Plot & animate](#plot)<br> .......... [Example 1](#eg1plot) | [Example 2](#eg2plot)<br>
-[Worked examples](#worked)<br> .......... [Example 4](#eg4worked) | [Example 5](#eg5worked)<br>
+[Worked examples](#worked)<br> .......... [Example 4](#eg4worked) | [Example 5](#eg5worked) | [Example 6](#eg6worked) (nested intervals)<br>
 [Extensions](#extensions)<br>
 [References](#references)<br>
 
