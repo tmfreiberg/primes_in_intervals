@@ -58,7 +58,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 [Raw data](#raw_data)<br> .......... [Example 1](#eg1generate) | [Example 2](#eg2generate)<br>
 [Save](#save)<br> .......... [Example 1](#eg1save) | [Example 2](#eg2save)<br>
 [Retrieve](#retrieve)<br> .......... [Example 1](#eg1retrieve) | [Example 2](#eg2retrieve)<br>
-[Narrow](#narrow)<br> .......... [Example 1](#eg1narrow) | [Example 2](#eg2narrow)<br>
+[Narrow or filter](#narrow)<br> .......... [Example 1](#eg1narrow) | [Example 2](#eg2narrow)<br>
 [Partition](#partition)<br> .......... [Example 1](#eg1partition) | [Example 2](#eg2partition)<br>
 [Nested intervals](#nest)<br> .......... [Example 1](#eg1nest) | [Example 2](#eg2nest)<br>
 [Analyze](#analyze)<br> .......... [Example 1](#eg1analyze) | [Example 2](#eg2analyze)<br>
@@ -1193,20 +1193,36 @@ data2disj == retrieve_data2disj, data2olap == retrieve_data2olap
 ### Narrow
 <sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Retrieve](#retrieve) | ↓ [Partition](#partition) </sup>
 
-If have data on primes in intervals of the form $(a, a + H]$ for $A < a \le B$, and we wish to instead work with data for the more restricted range $C < a \le D$ where $A \le C < D \le B$, we can obtain the corresponding data if $C$ and $D$ are "checkpoints". We use the ```narrow``` function below. It's simply a matter of noting that, e.g., if $100$ intervals with $a$ in the range $(A, D]$ contain $5$ primes, while $60$ of them correspond to $a$ in $(A,C]$, then $100 - 60 = 40$ of them are with $a$ in $(C, D]$.
+If we have data on primes in intervals of the form $(a, a + H]$ for $A < a \le B$, and we wish to instead work with data for the more restricted range $C < a \le D$ where $A \le C < D \le B$, we can obtain the corresponding data if $C$ and $D$ are "checkpoints". We use the ```extract``` function below. It's simply a matter of noting that, e.g., if $100$ intervals with $a$ in the range $(A, D]$ contain $5$ primes, while $60$ of them correspond to $a$ in $(A,C]$, then $100 - 60 = 40$ of them are with $a$ in $(C, D]$.
+
+More generally, we might wish to restrict (or "filter") our sequence ```C``` of checkpoints to a subsequence ```D```. We might especially want to do this if we have retrieved some data from our database, as in the following example. Suppose ```H = 100```, ```C1 = [100,200,300,400,500]```, and ```C2 = [100,160,220,280,340]```. We apply ```intervals(C1,H)```, then save the resulting data to our database, the do the same for ```intervals(C2,H)```. We later apply ```retrieve(100)```. We will end up with the equivalent of ```intervals(C,H)```, where ```C = [100,160,200,220,280,300,340,400,500]```. If we look at the terms of ```C``` we would probably realize that our original intention was to have checkpoints at multiples of ```100``` in one dataset, and checkpoints at ```100``` plus multiples of ```60``` in another. We could then split ```C``` up into ```C1``` and ```C2```. We'd then apply the ```extract``` function below.
 
 ```python
 # Input a dataset and a range (A,B].
-# Output a NEW dataset with info about primes in intervals (a, a + H] with a in (A,B].
+# Output a NEW dataset with info about primes in intervals (a, a + H] with a in (A,B] (option = 'narrow'), 
+# or with checkpoints common to newC and the current checkpoints (option = 'filter').
 
-def narrow(meta_dictionary, A, B):
+def extract(meta_dictionary, newC, option='filter'): 
+    # newC is a list. 
+    # option is either 'narrow' or not (defaults to 'filter').
+    # if option=='narrow', newC should be of the form [A,B] where (A, B] is the desired range for checkpoints.
+    # if A and B are already checkpoints, then both 'narrow' and 'filter' will do the same thing.
     if 'data' not in meta_dictionary.keys():
-        return print('No data to narrow.')
-    oldC = list(meta_dictionary['data'].keys())
-    oldC.sort() # just in case: it's important that these are in increasing order
-    C = [c for c in oldC if A <= c <= B]
-    if len(C) < 2:
-        return print('Insufficient data in given range.')
+        return print('No data to filter.')
+    if option=='narrow':
+        if len(newC) != 2:
+            return print('To narrow checkpoints to range (A, B], enter list [A,B].')
+        oldC = list(meta_dictionary['data'].keys())
+        oldC.sort() # just in case: it's important that these are in increasing order
+        C = [c for c in oldC if newC[0] <= c <= newC[-1]]
+        if len(C) < 2:
+            return print('At least two of the new checkpoints must lie in the given range.')
+    else:
+        oldC = set(meta_dictionary['data'].keys())
+        C = list(oldC.intersection(set(newC)))
+        C.sort()
+        if len(C) < 2:
+            return print('At least two of the new checkpoints must coincide with the old checkpoints.')
     interval_type = meta_dictionary['header']['interval_type'] 
     A, B = C[0], C[-1], 
     H = meta_dictionary['header']['interval_length']
@@ -1219,14 +1235,14 @@ def narrow(meta_dictionary, A, B):
     trimmed_data = zeros(output['data'])
     output['data'] = trimmed_data
     output['header']['contents'].append('data')
-    return output
+    return output    
 ```
 
 <a id='eg1narrow'></a>
 #### Example 1.
 
 ```python
-narrow_data1disj = narrow(retrieve_data1disj,2000000,4000000) # should be the same
+narrow_data1disj = extract(retrieve_data1disj,[2000000,4000000],option='narrow') # should be the same
 narrow_data1disj == retrieve_data1disj
 ```
 ```
@@ -1234,15 +1250,7 @@ True
 ```
 
 ```python
-narrow_data1disj = narrow(retrieve_data1disj,1000000,2666666)
-narrow_data1disj == intervals(range(2*10**6,2660000 + 1,10000), 100,'disjoint')
-```
-```
-True
-```
-
-```python
-narrow_data1olap = narrow(retrieve_data1olap,2345612,2987654)
+narrow_data1olap = extract(retrieve_data1olap,[2345612,2987654], option='narrow')
 narrow_data1olap['header'], narrow_data1olap['data'][2980000], intervals([2350000,2980000],100,'overlap')['data'][2980000], narrow_data1olap['data'][2980000] == intervals([2350000,2980000],100,'overlap')['data'][2980000]
 ```
 ```
@@ -1293,11 +1301,77 @@ narrow_data1olap['header'], narrow_data1olap['data'][2980000], intervals([235000
  True)
 ```
 
+```python
+oldC = list(retrieve_data1disj['data'].keys())
+newC = [oldC[0], oldC[20], oldC[-1]]
+filter_data1disj = extract(retrieve_data1disj,newC) #option='filter' by default
+filter_data1disj
+```
+```
+{'header': {'interval_type': 'disjoint',
+  'lower_bound': 2000000,
+  'upper_bound': 3000000,
+  'interval_length': 100,
+  'no_of_checkpoints': 3,
+  'contents': ['data']},
+ 'data': {2000000: {0: 0,
+   1: 0,
+   2: 0,
+   3: 0,
+   4: 0,
+   5: 0,
+   6: 0,
+   7: 0,
+   8: 0,
+   9: 0,
+   10: 0,
+   11: 0,
+   12: 0,
+   13: 0,
+   14: 0,
+   15: 0,
+   17: 0},
+  2200000: {0: 0,
+   1: 5,
+   2: 19,
+   3: 59,
+   4: 139,
+   5: 264,
+   6: 381,
+   7: 404,
+   8: 325,
+   9: 224,
+   10: 115,
+   11: 39,
+   12: 17,
+   13: 6,
+   14: 3,
+   15: 0,
+   17: 0},
+  3000000: {0: 1,
+   1: 25,
+   2: 97,
+   3: 337,
+   4: 776,
+   5: 1408,
+   6: 1881,
+   7: 1995,
+   8: 1525,
+   9: 1035,
+   10: 559,
+   11: 227,
+   12: 98,
+   13: 28,
+   14: 6,
+   15: 1,
+   17: 1}}}
+```
+
 <a id='eg2narrow'></a>
 #### Example 2.
 
 ```python
-narrow_data2disj = narrow(retrieve_data2disj,int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3)
+narrow_data2disj = extract(retrieve_data2disj,[int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3],option='narrow')
 narrow_data2disj
 ```
 ```
@@ -1313,7 +1387,7 @@ narrow_data2disj
 ```
 
 ```python
-narrow_data2olap = narrow(retrieve_data2olap,int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3)
+narrow_data2olap = extract(retrieve_data2olap,[int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3],option='narrow')
 narrow_data2olap
 ```
 ```
