@@ -1842,7 +1842,7 @@ nest_data2olap
 
 <a id='analyze'></a>
 ### Analyze
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Nested intervals](#nested) | ↓ [Compare](#compare) </sup>
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Nested intervals](#nest) | ↓ [Compare](#compare) </sup>
 
 ```python
 # ANCILLARY FUNCTION
