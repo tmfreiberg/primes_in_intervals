@@ -30,7 +30,7 @@ in agreement with Cramér's model only as a first-order approximation. The secon
 Excerpt from letter from Gauss to his student Johann Franz Encke, December 24, 1849 (see [[4]](#references)).
 
 _In 1811, the appearance of Chernau's cribrum gave me much pleasure and I have frequently (since I lack the patience
-for a continuous count) spent an idle quarter of an hour to count another chiliad here and there; although I eventually gave it up without quite getting through a million. Only some time later did I make use of the diligence of **Goldschmidt** to fill some of the remaining gaps in the first million and to continue the computationa ccording to Burkhardt’s tables. Thus (for many years now) the first three million have been counted and checked against the integral. A small excerpt follows..._
+for a continuous count) spent an idle quarter of an hour to count another chiliad here and there; although I eventually gave it up without quite getting through a million. Only some time later did I make use of the diligence of **Goldschmidt** to fill some of the remaining gaps in the first million and to continue the computation according to Burkhardt’s tables. Thus (for many years now) the first three million have been counted and checked against the integral. A small excerpt follows..._
 
 ![SegmentLocal](images/nachlass.jpg)
 
