@@ -3898,8 +3898,7 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-
-![SegmentLocal](images/N_exp21_H60.png)
+![SegmentLocal](images/N_exp21_H_60.png)
 
 ```python
 # Save a video of the animation.
