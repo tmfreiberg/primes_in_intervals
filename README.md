@@ -1358,7 +1358,7 @@ narrow_data2olap
 
 <a id='partition'></a>
 ### Partition
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Narrow](#narrow) | ↓ [Nested intervals](#nested) </sup>
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Narrow](#narrow) | ↓ [Nested intervals](#nest) </sup>
 
 We may wish to present our data in a "partitioned" form, i.e. if we have data on intervals $(A,C_1], (A, C_2],\ldots, (A,C_k]$, we may wish to express this as data for $(A, C_1], (C_1,C_2],\ldots,(C_{k-1},C_k]$. We do this with the ```partition``` function. We can reverse the process with the ```unpartition``` function.
 
