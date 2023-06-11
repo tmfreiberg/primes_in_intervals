@@ -1965,6 +1965,7 @@ def analyze(dataset):
         dataset['header']['contents'].append('distribution')
         dataset['header']['contents'].append('statistics')
         return dataset
+    return print('No data to analyze.')
 ```
 
 <a id='eg1analyze'></a>
