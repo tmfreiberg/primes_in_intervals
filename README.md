@@ -2262,40 +2262,72 @@ def frei_alt(H,m,t):
 
 ```python
 def compare(dataset):
-    if 'data' not in dataset.keys():
+    if 'data' in dataset.keys():
+        if 'distribution' not in dataset.keys():
+            return print('Analyze data first, to obtain distribution data for comparison with theoretical predictions.')
+        C = list(dataset['data'].keys())
+        C.sort() # just in case --- this is important
+        interval_type = dataset['header']['interval_type']
+        A = C[0]
+        H = dataset['header']['interval_length']
+        comparison = { C[0] : { m : 0 for m in dataset['data'][C[0]].keys() } } # for consistency with the keys
+        for c in C[1:]:
+            comparison[c] = {}
+            N = (A + c)//2 # midpoint of the interval (A, c]
+            p = 1/(np.log(N) - 1) # more accurate estimate for the density of primes around (A, c]
+            p_alt = 1/np.log(N) # estimate for the density        
+            if interval_type == 'overlap':            
+                multiplier = c - A # the number of intervals considered, in the overlapping case
+            if interval_type == 'disjoint':
+                multiplier = (c - A)//H # the number of intervals considered, in the disjoint case
+            for m in dataset['data'][c].keys():
+                binom_prob = binom_pmf(H,m,p)
+                frei_prob = frei(H,m,H*p)
+                frei_alt_prob = frei_alt(H,m,H*p_alt)
+                binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
+                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['data'][c][m], binom_pred, frei_pred, frei_alt_pred)
+        dataset['comparison'] = {}
+        for c in C:
+            dataset['comparison'][c] = {}
+            for m in comparison[c].keys():
+                dataset['comparison'][c][m] = comparison[c][m]
+        dataset['header']['contents'].append('comparison - actual, binomial, frei, frei_alt')
+        return dataset
+    if 'nested_interval_data' in dataset.keys():
+        if 'distribution' not in dataset.keys():
+            return print('Analyze data first, to obtain distribution data for comparison with theoretical predictions.')
+        C = list(dataset['nested_interval_data'].keys())
+        interval_type = dataset['header']['interval_type']
+        H = dataset['header']['interval_length']
+        comparison = { } 
+        for c in C:
+            comparison[c] = {}
+            N = (c[0] + c[1])//2 # midpoint of the interval c = (c[0], c[1]].
+            p = 1/(np.log(N) - 1) # more accurate estimate for the density of primes around (A, c]
+            p_alt = 1/np.log(N) # estimate for the density        
+            if interval_type == 'overlap':            
+                multiplier = c[1] - c[0] # the number of intervals considered, in the overlapping case
+            if interval_type == 'disjoint':
+                multiplier = (c[1] - c[0])//H # the number of intervals considered, in the disjoint case
+            for m in dataset['nested_interval_data'][c].keys():
+                binom_prob = binom_pmf(H,m,p)
+                frei_prob = frei(H,m,H*p)
+                frei_alt_prob = frei_alt(H,m,H*p_alt)
+                binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
+                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['nested_interval_data'][c][m], binom_pred, frei_pred, frei_alt_pred)
+        dataset['comparison'] = {}
+        for c in C:
+            dataset['comparison'][c] = {}
+            for m in comparison[c].keys():
+                dataset['comparison'][c][m] = comparison[c][m]
+        dataset['header']['contents'].append('comparison - actual, binomial, frei, frei_alt')        
+        return dataset
+    if 'data' not in dataset.keys() and 'new_interval_data' not in dataset.keys():
         return print('No data to compare.')
-    if 'distribution' not in dataset.keys():
-        return print('Analyze data first, to obtain distribution data for comparison with theoretical predictions.')
-    C = list(dataset['data'].keys())
-    C.sort() # just in case --- this is important
-    interval_type = dataset['header']['interval_type']
-    A = C[0]
-    H = dataset['header']['interval_length']
-    comparison = { C[0] : { m : 0 for m in dataset['data'][C[0]].keys() } } # for consistency with the keys
-    for c in C[1:]:
-        comparison[c] = {}
-        N = (A + c)/2 # midpoint of the interval (A, c]
-        p = 1/(np.log(N) - 1) # more accurate estimate for the density of primes around (A, c]
-        p_alt = 1/np.log(N) # estimate for the density        
-        if interval_type == 'overlap':            
-            multiplier = c - A # the number of intervals considered, in the overlapping case
-        if interval_type == 'disjoint':
-            multiplier = (c - A)//H # the number of intervals considered, in the disjoint case
-        for m in dataset['data'][c].keys():
-            binom_prob = binom_pmf(H,m,p)
-            frei_prob = frei(H,m,H*p)
-            frei_alt_prob = frei_alt(H,m,H*p_alt)
-            binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
-            frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
-            frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
-            comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['data'][c][m], binom_pred, frei_pred, frei_alt_pred)
-    dataset['comparison'] = {}
-    for c in C:
-        dataset['comparison'][c] = {}
-        for m in comparison[c].keys():
-            dataset['comparison'][c][m] = comparison[c][m]
-    dataset['header']['contents'].append('comparison - actual, binomial, frei, frei_alt')
-    return dataset
 ```
 
 <a id='eg1compare'></a>
@@ -2398,6 +2430,198 @@ retrieve_data1olap['comparison'][3000000][7]
  (193068, 153578, 179045, 181745))
 ```
 
+```python
+Cnest = list(nest_data1disj['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data1disj)['comparison'][Cnest[k]]
+```
+```
+((2290000, 2710000),
+ {0: ((0.0002380952380952381,
+    0.0005202764388049725,
+    -0.000410030506114741,
+    -0.000955584725261755),
+   (1, 2, -1, -4)),
+  1: ((0.002857142857142857,
+    0.004086432288416393,
+    -0.000790817080029619,
+    -0.00284038956347447),
+   (12, 17, -3, -11)),
+  2: ((0.009047619047619047,
+    0.015887649647662573,
+    0.00401593670296977,
+    0.00117139026245547),
+   (38, 66, 16, 4)),
+  3: ((0.033095238095238094,
+    0.04076379636644201,
+    0.0238225495672815,
+    0.0235764897753599),
+   (139, 171, 100, 99)),
+  4: ((0.08095238095238096,
+    0.07764196435230125,
+    0.0641435290981889,
+    0.0695180641006507),
+   (340, 326, 269, 291)),
+  5: ((0.14166666666666666,
+    0.11708678777086864,
+    0.116612880504236,
+    0.126289419313985),
+   (595, 491, 489, 530)),
+  6: ((0.19142857142857142,
+    0.14560972933068342,
+    0.161107223705815,
+    0.169758361134007),
+   (804, 611, 676, 712)),
+  7: ((0.19047619047619047,
+    0.15357847695695917,
+    0.179045618960343,
+    0.181745123450785),
+   (800, 645, 751, 763)),
+  8: ((0.15619047619047619,
+    0.1402275886955275,
+    0.165277417047954,
+    0.161157513250706),
+   (656, 588, 694, 676)),
+  9: ((0.0988095238095238,
+    0.11258717762710618,
+    0.129019132172140,
+    0.121066109017382),
+   (415, 472, 541, 508)),
+  10: ((0.05476190476190476,
+    0.08047119909296573,
+    0.0857374941871659,
+    0.0779680997004168),
+   (230, 337, 360, 327)),
+  11: ((0.025952380952380952,
+    0.05171308480733388,
+    0.0481519901801770,
+    0.0431176149383180),
+   (109, 217, 202, 181)),
+  12: ((0.010952380952380953,
+    0.030124465783735684,
+    0.0220747010831123,
+    0.0202083965034683),
+   (46, 126, 92, 84)),
+  13: ((0.0030952380952380953,
+    0.01601654440308115,
+    0.00728530261785767,
+    0.00766037549055310),
+   (13, 67, 30, 32)),
+  14: ((0.0002380952380952381,
+    0.007817541352591523,
+    0.000586661392106483,
+    0.00196894411412870),
+   (1, 32, 2, 8)),
+  15: ((0.0, 0.003520363646996056, -0.00154213789217459, -5.41122519397797e-5),
+   (0, 14, -6, 0)),
+  17: ((0.0002380952380952381,
+    0.0005700817415597236,
+    -0.00117217114204939,
+    -0.000408323860716536),
+   (1, 2, -4, -1))})
+```
+
+```python
+Cnest = list(nest_data1olap['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data1olap)['comparison'][Cnest[k]]
+```
+```
+((2290000, 2710000),
+ {0: ((8.571428571428571e-05,
+    0.0005202764388049725,
+    -0.000410030506114741,
+    -0.000955584725261755),
+   (36, 218, -172, -401)),
+  1: ((0.0021142857142857144,
+    0.004086432288416393,
+    -0.000790817080029619,
+    -0.00284038956347447),
+   (888, 1716, -332, -1192)),
+  2: ((0.010004761904761905,
+    0.015887649647662573,
+    0.00401593670296977,
+    0.00117139026245547),
+   (4202, 6672, 1686, 491)),
+  3: ((0.033433333333333336,
+    0.04076379636644201,
+    0.0238225495672815,
+    0.0235764897753599),
+   (14042, 17120, 10005, 9902)),
+  4: ((0.07973809523809523,
+    0.07764196435230125,
+    0.0641435290981889,
+    0.0695180641006507),
+   (33490, 32609, 26940, 29197)),
+  5: ((0.14002857142857142,
+    0.11708678777086864,
+    0.116612880504236,
+    0.126289419313985),
+   (58812, 49176, 48977, 53041)),
+  6: ((0.1889047619047619,
+    0.14560972933068342,
+    0.161107223705815,
+    0.169758361134007),
+   (79340, 61156, 67665, 71298)),
+  7: ((0.19118095238095237,
+    0.15357847695695917,
+    0.179045618960343,
+    0.181745123450785),
+   (80296, 64502, 75199, 76332)),
+  8: ((0.1585, 0.1402275886955275, 0.165277417047954, 0.161157513250706),
+   (66570, 58895, 69416, 67686)),
+  9: ((0.10581428571428571,
+    0.11258717762710618,
+    0.129019132172140,
+    0.121066109017382),
+   (44442, 47286, 54188, 50847)),
+  10: ((0.05559523809523809,
+    0.08047119909296573,
+    0.0857374941871659,
+    0.0779680997004168),
+   (23350, 33797, 36009, 32746)),
+  11: ((0.02340952380952381,
+    0.05171308480733388,
+    0.0481519901801770,
+    0.0431176149383180),
+   (9832, 21719, 20223, 18109)),
+  12: ((0.008347619047619048,
+    0.030124465783735684,
+    0.0220747010831123,
+    0.0202083965034683),
+   (3506, 12652, 9271, 8487)),
+  13: ((0.0022904761904761904,
+    0.01601654440308115,
+    0.00728530261785767,
+    0.00766037549055310),
+   (962, 6726, 3059, 3217)),
+  14: ((0.0004142857142857143,
+    0.007817541352591523,
+    0.000586661392106483,
+    0.00196894411412870),
+   (174, 3283, 246, 826)),
+  15: ((0.00010952380952380952,
+    0.003520363646996056,
+    -0.00154213789217459,
+    -5.41122519397797e-5),
+   (46, 1478, -647, -22)),
+  16: ((1.9047619047619046e-05,
+    0.0014689148415780752,
+    -0.00165722019733201,
+    -0.000489832259683239),
+   (8, 616, -696, -205)),
+  17: ((9.523809523809523e-06,
+    0.0005700817415597236,
+    -0.00117217114204939,
+    -0.000408323860716536),
+   (4, 239, -492, -171)),
+  18: ((0.0,
+    0.00020646805529753705,
+    -0.000682704547063179,
+    -0.000244133145442381),
+   (0, 86, -286, -102))})
+```
+
 <a id='eg2compare'></a>
 #### Example 2.
 
@@ -2425,6 +2649,156 @@ retrieve_data2disj['comparison'][65558989][5], retrieve_data2olap['comparison'][
    0.205698038678704,
    0.206282102722769),
   (212, 184, 209, 210)))
+```
+
+```python
+Cnest = list(nest_data2disj['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data2disj)['comparison'][Cnest[k]]
+```
+```
+((65639179, 65680759),
+ {0: ((0.0021645021645021645,
+    0.004269681843779133,
+    0.000396634437683792,
+    -0.000669024236301658),
+   (1, 1, 0, 0)),
+  1: ((0.025974025974025976,
+    0.02401696037439715,
+    0.0113486460010190,
+    0.00959716933751003),
+   (12, 11, 5, 4)),
+  2: ((0.06277056277056277,
+    0.06679717105002388,
+    0.0498982868802729,
+    0.0508133303609056),
+   (29, 30, 23, 23)),
+  3: ((0.12337662337662338,
+    0.12246148027438541,
+    0.114938173977106,
+    0.120164030159486),
+   (57, 56, 53, 55)),
+  4: ((0.19696969696969696,
+    0.16647107476975395,
+    0.176902712246361,
+    0.183017055304589),
+   (91, 76, 81, 84)),
+  5: ((0.2077922077922078,
+    0.1789564054008789,
+    0.202108676856128,
+    0.204297157730229),
+   (96, 82, 93, 94)),
+  6: ((0.20562770562770563,
+    0.15845098396940777,
+    0.181299084423810,
+    0.178371120810215),
+   (95, 73, 83, 82)),
+  7: ((0.10606060606060606,
+    0.11883823799259051,
+    0.131729843957290,
+    0.126346200611105),
+   (49, 54, 60, 58)),
+  8: ((0.047619047619047616,
+    0.07705916995839368,
+    0.0785587454927965,
+    0.0740126390957597),
+   (22, 35, 36, 34)),
+  9: ((0.017316017316017316,
+    0.043880916232043675,
+    0.0381723019329632,
+    0.0359826421041000),
+   (8, 20, 17, 16)),
+  10: ((0.0021645021645021645,
+    0.02221471384537604,
+    0.0143802762415794,
+    0.0142318681820293),
+   (1, 10, 6, 6)),
+  11: ((0.0021645021645021645,
+    0.010097597203763622,
+    0.00335882539378424,
+    0.00421850354773246),
+   (1, 4, 1, 1)),
+  12: ((0.0, 0.00415474051667502, -0.000423660641089088, 0.000594287863746370),
+   (0, 1, 0, 0))})
+```
+
+```python
+Cnest = list(nest_data2olap['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data2olap)['comparison'][Cnest[k]]
+```
+```
+((65639179, 65680759),
+ {0: ((0.0012987012987012987,
+    0.004269681843779133,
+    0.000396634437683792,
+    -0.000669024236301658),
+   (54, 177, 16, -27)),
+  1: ((0.016378066378066377,
+    0.02401696037439715,
+    0.0113486460010190,
+    0.00959716933751003),
+   (681, 998, 471, 399)),
+  2: ((0.06955266955266955,
+    0.06679717105002388,
+    0.0498982868802729,
+    0.0508133303609056),
+   (2892, 2777, 2074, 2112)),
+  3: ((0.1303030303030303,
+    0.12246148027438541,
+    0.114938173977106,
+    0.120164030159486),
+   (5418, 5091, 4779, 4996)),
+  4: ((0.197017797017797,
+    0.16647107476975395,
+    0.176902712246361,
+    0.183017055304589),
+   (8192, 6921, 7355, 7609)),
+  5: ((0.2342953342953343,
+    0.1789564054008789,
+    0.202108676856128,
+    0.204297157730229),
+   (9742, 7441, 8403, 8494)),
+  6: ((0.16998556998557,
+    0.15845098396940777,
+    0.181299084423810,
+    0.178371120810215),
+   (7068, 6588, 7538, 7416)),
+  7: ((0.10134680134680135,
+    0.11883823799259051,
+    0.131729843957290,
+    0.126346200611105),
+   (4214, 4941, 5477, 5253)),
+  8: ((0.047546897546897546,
+    0.07705916995839368,
+    0.0785587454927965,
+    0.0740126390957597),
+   (1977, 3204, 3266, 3077)),
+  9: ((0.023136123136123135,
+    0.043880916232043675,
+    0.0381723019329632,
+    0.0359826421041000),
+   (962, 1824, 1587, 1496)),
+  10: ((0.0075998075998075995,
+    0.02221471384537604,
+    0.0143802762415794,
+    0.0142318681820293),
+   (316, 923, 597, 591)),
+  11: ((0.001443001443001443,
+    0.010097597203763622,
+    0.00335882539378424,
+    0.00421850354773246),
+   (60, 419, 139, 175)),
+  12: ((9.62000962000962e-05,
+    0.00415474051667502,
+    -0.000423660641089088,
+    0.000594287863746370),
+   (4, 172, -17, 24)),
+  13: ((0.0,
+    0.0015580276939568005,
+    -0.00108452395089461,
+    -0.000305706255221288),
+   (0, 64, -45, -12))})
 ```
 
 <a id='display'></a>
