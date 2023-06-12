@@ -76,14 +76,28 @@ $$F^\*(H,m,\lambda^\*) = \frac{e^{-\lambda^\*}(\lambda^\*)^m}{m!}\left[1 + \frac
 
 The table below shows tuples $(a,b,c,d)$, where $a$ is the actual number, $b$ is the Binomial-based prediction, $c$ is our prediction and $d$ is our alternative prediction. It would be nice to be able to conjecture something about a tertiary term!
 
+We'll just show the last five rows of the table as it's a bit long and hard to read.
+
 ```python
 pii.compare(EXP17NEST[76])
-EXP17_76_NESTcompare = pii.display(EXP17NEST[76], comparisons='absolute')
-pii.dfi.export(EXP17_76_NESTcompare, 'EXP17_76_NESTcompare.png')
+EXP17_76_NESTcompare = pii.display(EXP17NEST[76], comparisons='absolute').tail(5)
+pii.dfi.export(EXP17_76_NESTcompare, 'EXP17_76_NESTcompare_tail.png')
 ```
-![SegmentLocal](images/examples/EXP17_76_NESTcompare.png)
+![SegmentLocal](images/examples/EXP17_76_NESTcompare_tail.png)
 
 We can perhaps work on the formatting of such tables.
+
+Now, we want to know which prediction is the "best", and this is hard to see by glancing at the above table. By "best" we mean gives the smallest sum-of-squared-error over $m$ (number of primes in an interval). We're mainly interested in comparing $F$ and $F^\*$. Comparing $F^\*$ to the Binomial is not really apples-to-apples because the Binomial we are using takes the probability of finding a prime around $N$ as being $\lambda/H = 1/(\log N - 1)$, rather than $\lambda^\*/H = 1/\log N$, as in $F^\*$.
+
+We'll use our 'winners' function to determine the best predictions for each interval. For each prediction, this function also gives us the $m$ for which that prediction gives a smaller error than the others. 
+
+```python
+pii.winners(EXP17NEST[76])
+EXP17_76_NESTwinners = pii.display(EXP17NEST[76], winners='show')
+pii.dfi.export(EXP17_76_NESTwinners, 'EXP17_76_NESTwinners.png')
+```
+
+![SegmentLocal](images/examples/EXP17_76_NESTwinners.png)
 
 Finally, let's make an animated plot, with one frame for each of the intervals considered.
 
