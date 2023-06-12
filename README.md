@@ -8,7 +8,7 @@ The histogram shows the distribution of primes in intervals. Cramér's random mo
 
 As suggested in [[1]](#references), our prediction is based on the Hardy-Littlewood prime tuples conjecture, inclusion-exclusion, and a precise estimate, due to Montgomery and Soundararajan [[3]](#references), for a certain average involving the singular series of the prime tuples conjecture. 
 
-![SegmentLocal](images/N_exp21_H_60.gif)
+![SegmentLocal](images/README/N_exp21_H_60.gif)
 
 The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ being the "probability" that an integer close to $N$ is prime (and we assume $\lambda \asymp 1$),
 
@@ -32,11 +32,11 @@ Excerpt from letter from Gauss to his student Johann Franz Encke, December 24, 1
 _In 1811, the appearance of Chernau's cribrum gave me much pleasure and I have frequently (since I lack the patience
 for a continuous count) spent an idle quarter of an hour to count another chiliad here and there; although I eventually gave it up without quite getting through a million. Only some time later did I make use of the diligence of **Goldschmidt** to fill some of the remaining gaps in the first million and to continue the computation according to Burkhardt’s tables. Thus (for many years now) the first three million have been counted and checked against the integral. A small excerpt follows..._
 
-![SegmentLocal](images/nachlass.jpg)
+![SegmentLocal](images/README/nachlass.jpg)
 
-![SegmentLocal](images/goldschmidt_2_3_million.png)
+![SegmentLocal](images/README/goldschmidt_2_3_million.png)
 
-![SegmentLocal](images/goldschmidt_table_plot.png)
+![SegmentLocal](images/README/goldschmidt_table_plot.png)
 
 <a id='contents'></a>
 ### Contents
@@ -3278,7 +3278,7 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-![SegmentLocal](images/exp20/2_to_3_million_H_100.png)
+![SegmentLocal](images/README/2_to_3_million_H_100.png)
 
 ```python
 # Save a video of the animation.
@@ -3399,7 +3399,7 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-![SegmentLocal](images/exp18_H_85.png)
+![SegmentLocal](images/README/exp18_H_85.png)
 
 ```python
 # Save a video of the animation.
@@ -3675,7 +3675,7 @@ plot(C[-1])
 plt.show()
 ```
 
-![SegmentLocal](images/exp20alt_H_90.png)
+![SegmentLocal](images/README/exp20alt_H_90.png)
 
 ```python
 # Save a video of the animation.
@@ -3821,7 +3821,7 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-![SegmentLocal](images/exp20_H_76.png)
+![SegmentLocal](images/README/exp20_H_76.png)
 
 ```python
 # Save a video of the animation.
@@ -3974,7 +3974,7 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-![SegmentLocal](images/N_exp21_H_60.png)
+![SegmentLocal](images/README/N_exp21_H_60.png)
 
 ```python
 # Save a video of the animation.
