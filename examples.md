@@ -26,11 +26,11 @@ Let's display one of these tables: the one for primes between $2$ and $3$ millio
 NACHLASS3df = pii.display(NACHLASS[3], count='partition', orient='columns')
 pii.dfi.export(NACHLASS3df, 'NACHLASS3df.png')
 ```
-![SegmentLocal](images/NACHLASS3df.png)
+![SegmentLocal](images/examples/NACHLASS3df.png)
 
 Here's the original: Gauss/Goldschmidt were only short by $21$ primes in the end!
 
-![SegmentLocal](images/nachlass.jpg)
+![SegmentLocal](images/examples/nachlass.jpg)
 
 **Example 2.** Let's look at a series of nested intervals centred around $N = [e^{17}] = 24,154,952$. We take the density of primes close to $N$ as $1/(\log N - 1)$, which is $1/15.999999968802452\ldots$, virtually $1/16$. We'll get data for intervals of length $64, 68, 72, 76, 80$. 
 ```python
@@ -57,7 +57,7 @@ Let's display what we have for $H = 76$ for instance.
 EXP17_76_NESTtable = pii.display(EXP17NEST[76])
 pii.dfi.export(EXP17_76_NESTtable, 'EXP17_76_NESTtable.png')
 ```
-![SegmentLocal](images/EXP17_76_NESTtable.png)
+![SegmentLocal](images/examples/EXP17_76_NESTtable.png)
 
 Let's compare the data (for $H = 76$) to three predictions: the Binomial, our prediction, and the alternate version of our prediction (with the density of primes around $N$ taken to be $1/\log N$). Specifically, we $\lambda = H/(\log N - 1)$ (and assuming $\lambda \asymp 1$), the naive prediction based purely on Cramér's model is
 
@@ -81,7 +81,7 @@ pii.compare(EXP17NEST[76])
 EXP17_76_NESTcompare = pii.display(EXP17NEST[76], comparisons='absolute')
 pii.dfi.export(EXP17_76_NESTcompare, 'EXP17_76_NESTcompare.png')
 ```
-![SegmentLocal](images/EXP17_76_NESTcompare.png)
+![SegmentLocal](images/examples/EXP17_76_NESTcompare.png)
 
 We can perhaps work on the formatting of such tables.
 
@@ -188,7 +188,7 @@ plt.show()
 
 The final frame looks like this:
 
-![SegmentLocal](images/EXP17_76_NESTplot.png)
+![SegmentLocal](images/examples/EXP17_76_NESTplot.png)
 
 Save the animation...
 
@@ -196,7 +196,7 @@ Save the animation...
 HTML(X_anim.to_html5_video())
 ```
 
-![SegmentLocal](images/EXP17_76_NESTanim.gif)
+![SegmentLocal](images/examples/EXP17_76_NESTanim.gif)
 
 
 
