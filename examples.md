@@ -59,7 +59,22 @@ pii.dfi.export(EXP17_76_NESTtable, 'EXP17_76_NESTtable.png')
 ```
 ![SegmentLocal](images/EXP17_76_NESTtable.png)
 
-Let's compare the data (for $H = 76$) to three predictions: the Binomial, our prediction, and the alternate version of our prediction (with the density of primes around $N$ taken to be $1/\log N$).
+Let's compare the data (for $H = 76$) to three predictions: the Binomial, our prediction, and the alternate version of our prediction (with the density of primes around $N$ taken to be $1/\log N$). Specifically, we $\lambda = H/(\log N - 1)$ (and assuming $\lambda \asymp 1$), the naive prediction based purely on Cramér's model is
+
+$$\mathrm{Binom}(H,\lambda/H) =  \frac{e^{-\lambda}\lambda^m}{m!}\bigg[1 + \frac{Q_1(\lambda,m)}{H} + \frac{Q_2(\lambda,m)}{H^2} + \cdots\bigg],$$
+where each $Q_j(\lambda,m)$ is a polynomial in $\lambda$ and $m$, and in particular, 
+
+$$Q_1(\lambda,m) = \frac{m - (m - \lambda)^2}{2}.$$
+
+Our prediction is 
+
+$$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{Q_1(\lambda,m)}{H}\left(\log H + (\log 2\pi + \gamma - 1)\right) \right].$$
+
+Our alternative prediction is, with $\lambda^\* = 1/\log N$, 
+
+$$F^\*(H,m,\lambda^\*) = \frac{e^{-\lambda^\*}(\lambda^\*)^m}{m!}\left[1 + \frac{\lambda^\*}{H}(m - \lambda^\*) + \frac{\log H + (\log 2\pi + \gamma - 1)}{H}Q_1(m,\lambda^\*) \right].$$
+
+The table below shows tuples $(a,b,c,d)$, where $a$ is the actual number, $b$ is the Binomial-based prediction, $c$ is our prediction and $d$ is our alternative prediction. It would be nice to be able to conjecture something about a tertiary term!
 
 ```python
 pii.compare(EXP17NEST[76])
