@@ -2406,6 +2406,103 @@ def compare(dataset):
         return print('No data to compare.')
 ```
 
+We might also like to know which of the predictions fit the data best. But what do we mean by "best"? We mean the prediction $\mathrm{pred}$ for which 
+
+$$\sum_m (h(m) - \mathrm{pred}(m))^2$$
+
+is the smallest. We'll just sum over the smallest range for $m$ outside of which $h(m)$ is zero. (Recall that $h(m)$ is the number of overlapping intervals considered that contain exactly $m$ primes. For disjoitn intervals, replace $h(m)$ by $g(m)$.)
+
+Note that comparing the Binomial with parameters $H$ and $\lambda/H$ is not an apples to apples comparison with $F^\*(H,m,\lambda^\*)$, but we're mainly interested in comparing $F$ and $F^\*$ (we expect both to be superior to the Binomial, regardless of whether we plug $\lambda/H$ or $\lambda^\*/H$ into the Binomial).
+
+```python
+# Input a data set containing a 'comparisons' item.
+# MODIFY the dataset to add a 'winners' item, giving the "best" prediction for each interval considered in the data.
+# "Best" in two different senses: sum of the squared error (over m), and number of m for which a prediction is closest.
+
+def winners(dataset):
+    if 'winners' in dataset.keys():
+        return print('This function has already been applied to the data.')
+    if 'comparison' not in dataset.keys():
+        return print('Compare the data first, to obtain distribution data for comparison with theoretical predictions.')
+    if 'nested_interval_data' in dataset.keys(): 
+        datakey = 'nested_interval_data'
+    elif 'data' in dataset.keys():
+        datakey = 'data'
+    else:
+        return print('No data.')
+    C = list(dataset[datakey].keys())
+    interval_type = dataset['header']['interval_type']
+    A = C[0]
+    H = dataset['header']['interval_length']
+    winners = {}
+    for c in C:
+        winners[c] = {}
+        M = [m for m in dataset['comparison'][c].keys() if dataset['comparison'][c][m] != 0]
+        if M != []:
+            min_m, max_m = min(M), max(M)
+            M = list(range(min_m, max_m + 1))
+            square_error_binom = sum([(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][1])**2 for m in M])
+            square_error_frei = sum([(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][2])**2 for m in M])
+            square_error_frei_alt = sum([(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][3])**2 for m in M])
+            winners[c]['B sq error'] = square_error_binom
+            winners[c]['F sq error'] = square_error_frei
+            winners[c]['F* sq error'] = square_error_frei_alt
+            square_error = [square_error_binom, square_error_frei, square_error_frei_alt]
+            square_error.sort()
+            for i in [0,1,2]:
+                if square_error[i] == square_error_frei:
+                    winners[c][i + 1] = 'F'
+                if square_error[i] == square_error_frei_alt:
+                    winners[c][i + 1] = 'F^*'
+                if square_error[i] == square_error_binom:
+                    winners[c][i + 1] = 'B'
+            winners[c]['B wins for m in '] = []
+            winners[c]['F wins for m in '] = []
+            winners[c]['F* wins for m in '] = []
+            for m in M:
+                temp_list = [abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][i]) for i in range(1,4)]
+                min_diff = min(temp_list)
+                mB, mF, mFalt = 0, 0, 0
+                if abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][1]) == min_diff:
+                    winners[c]['B wins for m in '].append(m)
+                    mB += 1
+                if abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][2]) == min_diff:
+                    winners[c]['F wins for m in '].append(m)
+                    mF += 1
+                if abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][3]) == min_diff:
+                    winners[c]['F* wins for m in '].append(m) 
+                    mFalt += 1
+                max_wins = [mB, mF, mFalt]
+                max_wins.sort(reverse=True)
+                winners[c]['most wins'] = ''
+                winners[c]['2nd most wins'] = ''
+                winners[c]['least wins'] = ''
+                if mB == max_wins[0]:
+                    winners[c]['most wins'] += 'B'
+                if mF == max_wins[0]:
+                    winners[c]['most wins'] += 'F'
+                if mFalt == max_wins[0]:
+                    winners[c]['most wins'] += 'F*'
+                if mB == max_wins[1]:
+                    winners[c]['2nd most wins'] += 'B'
+                if mF == max_wins[1]:
+                    winners[c]['2nd most wins'] += 'F'
+                if mFalt == max_wins[1]:
+                    winners[c]['2nd most wins'] += 'F*'
+                if mB == max_wins[2]:
+                    winners[c]['least wins'] += 'B'
+                if mF == max_wins[2]:
+                    winners[c]['least wins'] += 'F'
+                if mFalt == max_wins[2]:
+                    winners[c]['least wins'] += 'F*'
+                
+        if M == []:
+            winners[c] = {'B sq error' : '-', 'F sq error' : '-', 'F* sq error' : '-', 1 : '-', 2 : '-', 3 : '-', 'B wins for m in ' : '-', 'F wins for m in ' : '-','F* wins for m in ' : '-', 'most wins' : '-', '2nd most wins' : '-', 'least wins' : '-'}
+    dataset['winners'] = winners
+    dataset['header']['contents'].append('winners')
+    return dataset
+```
+
 <a id='eg1compare'></a>
 #### Example 1.
 
