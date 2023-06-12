@@ -83,7 +83,7 @@ pii.compare(EXP17NEST[76])
 EXP17_76_NESTcompare = pii.display(EXP17NEST[76], comparisons='absolute').tail(5)
 pii.dfi.export(EXP17_76_NESTcompare, 'EXP17_76_NESTcompare_tail.png')
 ```
-![SegmentLocal](images/examples/EXP17_76_NESTcompare_tail.png)
+![SegmentLocal](images/examples/EXP17_76_NESTcompare_tail_5.png)
 
 We can perhaps work on the formatting of such tables.
 
