@@ -2453,16 +2453,16 @@ def winners(dataset):
                 if square_error[i] == square_error_frei:
                     winners[c][i + 1] = 'F'
                 if square_error[i] == square_error_frei_alt:
-                    winners[c][i + 1] = 'F^*'
+                    winners[c][i + 1] = 'F*'
                 if square_error[i] == square_error_binom:
                     winners[c][i + 1] = 'B'
             winners[c]['B wins for m in '] = []
             winners[c]['F wins for m in '] = []
             winners[c]['F* wins for m in '] = []
+            mB, mF, mFalt = 0, 0, 0
             for m in M:
                 temp_list = [abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][i]) for i in range(1,4)]
-                min_diff = min(temp_list)
-                mB, mF, mFalt = 0, 0, 0
+                min_diff = min(temp_list)                
                 if abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][1]) == min_diff:
                     winners[c]['B wins for m in '].append(m)
                     mB += 1
@@ -2472,29 +2472,29 @@ def winners(dataset):
                 if abs(dataset['comparison'][c][m][1][0] - dataset['comparison'][c][m][1][3]) == min_diff:
                     winners[c]['F* wins for m in '].append(m) 
                     mFalt += 1
-                max_wins = [mB, mF, mFalt]
-                max_wins.sort(reverse=True)
-                winners[c]['most wins'] = ''
-                winners[c]['2nd most wins'] = ''
-                winners[c]['least wins'] = ''
-                if mB == max_wins[0]:
-                    winners[c]['most wins'] += 'B'
-                if mF == max_wins[0]:
-                    winners[c]['most wins'] += 'F'
-                if mFalt == max_wins[0]:
-                    winners[c]['most wins'] += 'F*'
-                if mB == max_wins[1]:
-                    winners[c]['2nd most wins'] += 'B'
-                if mF == max_wins[1]:
-                    winners[c]['2nd most wins'] += 'F'
-                if mFalt == max_wins[1]:
-                    winners[c]['2nd most wins'] += 'F*'
-                if mB == max_wins[2]:
-                    winners[c]['least wins'] += 'B'
-                if mF == max_wins[2]:
-                    winners[c]['least wins'] += 'F'
-                if mFalt == max_wins[2]:
-                    winners[c]['least wins'] += 'F*'
+            max_wins = [mB, mF, mFalt]
+            max_wins.sort(reverse=True)
+            winners[c]['most wins'] = ''
+            winners[c]['2nd most wins'] = ''
+            winners[c]['least wins'] = ''
+            if mB == max_wins[0]:
+                winners[c]['most wins'] += 'B'
+            if mF == max_wins[0]:
+                winners[c]['most wins'] += 'F'
+            if mFalt == max_wins[0]:
+                winners[c]['most wins'] += 'F*'
+            if mB == max_wins[1]:
+                winners[c]['2nd most wins'] += 'B'
+            if mF == max_wins[1]:
+                winners[c]['2nd most wins'] += 'F'
+            if mFalt == max_wins[1]:
+                winners[c]['2nd most wins'] += 'F*'
+            if mB == max_wins[2]:
+                winners[c]['least wins'] += 'B'
+            if mF == max_wins[2]:
+                winners[c]['least wins'] += 'F'
+            if mFalt == max_wins[2]:
+                winners[c]['least wins'] += 'F*'
                 
         if M == []:
             winners[c] = {'B sq error' : '-', 'F sq error' : '-', 'F* sq error' : '-', 1 : '-', 2 : '-', 3 : '-', 'B wins for m in ' : '-', 'F wins for m in ' : '-','F* wins for m in ' : '-', 'most wins' : '-', '2nd most wins' : '-', 'least wins' : '-'}
