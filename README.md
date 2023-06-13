@@ -878,7 +878,6 @@ def anyIntervalsPrint(M,N,H,generator1,generator2):
             Blist.append(b)
             b = next(B)
         output[m] += 1
-        print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
         a = next(A)
         while a + H <= min(b, N + H):     
             if a + H == b:  
@@ -889,6 +888,7 @@ def anyIntervalsPrint(M,N,H,generator1,generator2):
                 if Blist[i] <= a:
                     m += -1 
                     Blist[i] = 'x'
+		    print(f'{Blist}')
             while 'x' in Blist:
                 Blist.remove('x')
             output[m] += 1   
@@ -902,12 +902,18 @@ def anyIntervalsPrint(M,N,H,generator1,generator2):
 anyIntervalsPrint(10,31,10,postponed_sieve(),postponed_sieve())
 ```
 ```
-11 < [13, 17, 19] <= 21, 3 : 1
+11 | [13, 17, 19] <= 21, 3 : 1
+['x', 17, 19, 23]
 13 < [17, 19, 23] <= 23, 3 : 2
+['x', 19, 23]
 17 < [19, 23] <= 27, 2 : 1
+['x', 23, 29]
 19 < [23, 29] <= 29, 2 : 2
-23 < [23, 29, 31] <= 33, 3 : 3
-29 < [23, 29, 31, 37] <= 39, 4 : 1
+23 | [23, 29, 31] <= 33, 3 : 3
+29 | [23, 29, 31, 37] <= 39, 4 : 1
+['x', 29, 31, 37, 41]
+['x', 'x', 31, 37, 41]
+['x', 'x', 'x', 37, 41]
 31 < [37, 41] <= 41, 2 : 3
 {2: 3, 3: 3, 4: 1}
 ```
