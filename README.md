@@ -54,6 +54,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 ..........[Overlapping intervals](#overlapping)<br>
 ..........[Overlapping intervals, with checkpoints](#overlapping_checkpoints)<br>
 ..........[A single function](#single_function)<br>
+..........[Prime-starting intervals, and more elegant solution](#prime_starting)<br>
 ..........[To do](#to_do)<br>
 [Raw data](#raw_data)<br> .......... [Example 1](#eg1generate) | [Example 2](#eg2generate)<br>
 [Save](#save)<br> .......... [Example 1](#eg1save) | [Example 2](#eg2save)<br>
@@ -775,12 +776,6 @@ another_test_olap_cp_df
 100	2	22	28	22	8	2	10	5	1
 ```
 
-<a id='prime_endpoint'></a>
-#### Prime left endpoint intervals
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals, with checkpoints](#overlapping_checkpoints) | ↓ [A single function](#single_function) </sup>
-
-See [to do](#to_do)
-
 <a id='single_function'></a>
 #### A single function
 <sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals, with checkpoints](#overlapping_checkpoints) | ↓ [To do](#to_do) </sup>
@@ -793,15 +788,141 @@ def intervals(C,H,interval_type='overlap'):
         return overlap_cp(C,H)
 ```
 
+<a id='prime_starting'></a>
+#### Prime-starting intervals, and a more elegant solution
+
+We have considered intervals of the form $(a, a + H]$, where $a$ runs over integers in an arithmetic progression modulo $H$ (disjoint intervals), and where are runs over all integers (overlapping intervals). We wish to consider intervals for which $a$ is always prime. In fact, why not consider $a$ running over any strictly increasing sequence $A$ of nonnegative integers? For that matter, why restrict ourselves to primes in intervals? Why don't we consider the number of intervals with $m$ elements from another strictly increasing sequence $B$ of nonnegative integers? If we can generate $A$ and $B$, we can count intervals $(a, a + H]$ with $a$ running over $A$, containing a given number of elements of $B$. This can be done with ```anyIntervals``` below.
+
+```python
+def anyIntervals(M,N,H,generator1,generator2):
+    A = generator1
+    B = generator2
+    a = next(A)
+    b = next(B)
+    while a <= M:
+        a = next(A)
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    Blist = []
+    while a <= N:
+        while b <= a:
+            b = next(B)        
+        while b <= a + H:
+            m += 1
+            Blist.append(b)
+            b = next(B)
+        output[m] += 1
+        a = next(A)
+        while a + H <= min(b, N + H):     
+            if a + H == b:  
+                m += 1
+                Blist.append(b)
+                b = next(B)
+            for i in range(len(Blist)):
+                if Blist[i] <= a:
+                    m += -1 
+                    Blist[i] = 'x'
+            while 'x' in Blist:
+                Blist.remove('x')
+            output[m] += 1   
+            a = next(A)
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+```
+
+For the case of overlapping intervals and primes, we'd use ```count()``` from the ```itertools``` package as ```generator1```, and ```postponed_sieve()``` as ```generator2```. Let's try it out.
+
+```python
+from timeit import default_timer as timer
+start1 = timer()
+nachlass_general_way = anyIntervals(2*10**6, 3*10**6,100, count(), postponed_sieve())
+end1 = timer()
+
+start2 = timer()
+nachlass_specific_way = pii.overlap_cp([2*10**6, 3*10**6],100)
+end2 = timer()
+
+end1 - start1, end2 - start2
+```
+```
+(3.037539799930528, 1.8025022000074387)
+```
+The greater generality costs us a little bit extra in time. (We also have to store a list whose length is at most $H$.) Let's check our results for consistency.
+
+```python
+nachlass_general_way == nachlass_specific_way['data'][3000000]
+```
+```
+True
+
+```
+
+Let's see the ```anyIntervals``` function applied to intervals whose left endpoints are all prime. For purposes of demonstration, let's add two lines to the code so that we see a print out at each key step.
+
+```python
+def anyIntervalsPrint(M,N,H,generator1,generator2):
+    A = generator1
+    B = generator2
+    a = next(A)
+    b = next(B)
+    while a <= M:
+        a = next(A)
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    Blist = []
+    while a <= N:
+        while b <= a:
+            b = next(B)        
+        while b <= a + H:
+            m += 1
+            Blist.append(b)
+            b = next(B)
+        output[m] += 1
+        print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
+        a = next(A)
+        while a + H <= min(b, N + H):     
+            if a + H == b:  
+                m += 1
+                Blist.append(b)
+                b = next(B)
+            for i in range(len(Blist)):
+                if Blist[i] <= a:
+                    m += -1 
+                    Blist[i] = 'x'
+            while 'x' in Blist:
+                Blist.remove('x')
+            output[m] += 1   
+            print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
+            a = next(A)
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+```
+
+```python
+anyIntervalsPrint(10,31,10,postponed_sieve(),postponed_sieve())
+```
+```
+11 < [13, 17, 19] <= 21, 3 : 1
+13 < [17, 19, 23] <= 23, 3 : 2
+17 < [19, 23] <= 27, 2 : 1
+19 < [23, 29] <= 29, 2 : 2
+23 < [23, 29, 31] <= 33, 3 : 3
+29 < [23, 29, 31, 37] <= 39, 4 : 1
+31 < [37, 41] <= 41, 2 : 3
+{2: 3, 3: 3, 4: 1}
+```
+
 <a id='to_do'></a>
 #### To do
 <sup>Jump to: ↑↑ [Contents](#contents) | ↑ [A single function](#single_function) | ↓ [Raw data](#raw_data) </sup>
 
-* A version of the intervals function for ```interval_type == 'prime_start'```, meaning that we consider only intervals of the form $(a, a + H]$, where $a$ is _prime_.
+* A checkpoint version of our ```anyIntervals``` function, plus have the output include a ```header``` etc.
 
 * If we do a computation that takes a long time, and then want to extend the calculation, we'd like to be able to pick up where we left off. Suppose we compute ```intervals([0,N],H)``` where ```N``` is very large, and then we'd like to compute ```intervals([N,2N], H)``` or ```intervals([0,2N], H)```. At the moment, we'd have to start from scratch. What we'd like to do is save the state of our ```intervals``` function, particularly the prime generators, and then just keep going.
 
 * In a similar vein, another thing we could do is input various values for the interval length ```H```, say a list ```[H_1,H_2,...,H_k]```, and have a function return ```intervals(C,H_i)``` for each ```H_i```, without simply computing ```intervals(C,H_i)``` $k$ times.
+
+* Some of the code for displaying data (below) is getting unwieldy, and should be cleaned up. 
 
 <a id='raw_data'></a>
 ### Raw data
