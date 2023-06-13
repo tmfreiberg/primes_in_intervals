@@ -186,6 +186,46 @@ def intervals(C,H,interval_type='overlap'):
     if interval_type == 'overlap': 
         return overlap_cp(C,H)
 
+ # ANY INTERVALS: A MORE GENERAL AND ELEGANT (BUT SLOWER) FUNCTION
+
+# This is the core function. We need to make a "checkpoint" version and update all the related functions (display, etc.).
+
+def anyIntervals(M,N,H,generator1,generator2):
+    A = generator1
+    B = generator2
+    a = next(A)
+    b = next(B)
+    while a <= M:
+        a = next(A)
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    Blist = []
+    while a <= N:
+        while b <= a:
+            b = next(B)        
+        while b <= a + H:
+            m += 1
+            Blist.append(b)
+            b = next(B)
+        output[m] += 1
+        a = next(A)
+        while a + H <= min(b, N + H):     
+            if a + H == b:  
+                m += 1
+                Blist.append(b)
+                b = next(B)
+            for i in range(len(Blist)):
+                if Blist[i] <= a:
+                    m += -1 
+                    Blist[i] = 'x'
+            while 'x' in Blist:
+                Blist.remove('x')
+            output[m] += 1   
+            a = next(A)
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+
+      
 # SAVE
 
 # We have a database called primes_in_intervals_db.
