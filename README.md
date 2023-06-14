@@ -2591,7 +2591,7 @@ We use $F$ with $\lambda = H/(\log N - 1)$ and $F^\*$ with $\lambda^\* = H/\log 
 
 We're comparing these against the prediction based on $$\mathrm{Binom}(H, \lambda/H)$$.
 
-NB: $F$ and $F^\*$ apply to the case of overlapping intervals only at this point. The details of the case of disjoint intervals have not been worked out yet, and it may well be that different second-order terms arise in the disjoint case. Therefore, in the case of disjoint intervals, comparisons with estimates arising from $F$ and $F^\*$ should be taken with a grain of salt.
+NB: $F$ and $F^\*$ apply to the case of overlapping intervals only at this point. The details of the case of disjoint intervals and prime-starting intervals have not been worked out yet, and it may well be that different second-order terms arise in the disjoint/prime-starting case. Therefore, in the case of disjoint/prime-starting intervals, comparisons with estimates arising from $F$ and $F^\*$ should be taken with a grain of salt.
 
 ```python
 import numpy as np 
@@ -2636,13 +2636,15 @@ def compare(dataset):
                 multiplier = c - A # the number of intervals considered, in the overlapping case
             if interval_type == 'disjoint':
                 multiplier = (c - A)//H # the number of intervals considered, in the disjoint case
+            if interval_type == 'prime_start':
+                multiplier = sum(dataset['data'][c].values()) # the number of intervals considered, in the prime-start case
             for m in dataset['data'][c].keys():
                 binom_prob = binom_pmf(H,m,p)
                 frei_prob = frei(H,m,H*p)
                 frei_alt_prob = frei_alt(H,m,H*p_alt)
                 binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
-                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
-                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me, but only in the case of overlapping intervals
+                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate (overlapping intervals)
                 comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['data'][c][m], binom_pred, frei_pred, frei_alt_pred)
         dataset['comparison'] = {}
         for c in C:
@@ -2667,13 +2669,15 @@ def compare(dataset):
                 multiplier = c[1] - c[0] # the number of intervals considered, in the overlapping case
             if interval_type == 'disjoint':
                 multiplier = (c[1] - c[0])//H # the number of intervals considered, in the disjoint case
+            if interval_type == 'prime_start':
+                multiplier = sum(dataset['nested_interval_data'][c].values()) # the number of intervals considered, in the prime-start case
             for m in dataset['nested_interval_data'][c].keys():
                 binom_prob = binom_pmf(H,m,p)
                 frei_prob = frei(H,m,H*p)
                 frei_alt_prob = frei_alt(H,m,H*p_alt)
                 binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
-                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
-                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me, but only in the case of overlapping intervals
+                frei_alt_pred = int(frei_alt_prob*multiplier) # alternative prediction (overlapping intervals)
                 comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['nested_interval_data'][c][m], binom_pred, frei_pred, frei_alt_pred)
         dataset['comparison'] = {}
         for c in C:
@@ -3301,8 +3305,7 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                 for w in dataset['winners'][C[i]]:
                     output[i][w] = dataset['winners'][C[i]][w]   
             df = pd.DataFrame.from_dict(output, orient=orient)
-            return df
-        
+            return df        
     else:
         if 'data' in dataset.keys():
             if comparisons == 'absolute' or comparisons == 'probabilities':
@@ -3373,6 +3376,12 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     return df            
             else:
                 interval_type = dataset['header']['interval_type']
+                if interval_type == 'overlap':
+                    word = 'overlapping'
+                if interval_type == 'disjoint':
+                    word = 'disjoint'
+                if interval_type == 'prime_start':
+                    word = 'left endpoint prime'
                 A = dataset['header']['lower_bound']
                 B = dataset['header']['upper_bound']
                 H = dataset['header']['interval_length']
@@ -3380,7 +3389,7 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     counts = 'non-cumulative'
                 else:
                     counts = 'cumulative'
-                text = f'Interval type: {interval_type}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
+                text = f'Interval type: {word}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
                 if comparisons == 'absolute' or comparisons == 'probabilities':
                     text = text + 'In tuple (a,b,c,d), a is actual data, b is Binomial prediction, c is frei prediction, and d is frei_alt prediction.'
                 if zeroth_item == 'no show':
@@ -3408,6 +3417,8 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     output[i] = { 'B - A' : C[i][1] - C[i][0], 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 if interval_type == 'disjoint':
                     output[i] = { '(B - A)/H' : (C[i][1] - C[i][0])//H, 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+                if interval_type == 'prime_start':
+                    output[i] = { 'pi(B) - pi(A)' : sum(dataset['nested_interval_data'][C[i]].values()), 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 if not(comparisons == 'absolute' or comparisons == 'probabilities'):
                     for m in M:
                         output[i][m] = dataset['nested_interval_data'][C[i]][m]
