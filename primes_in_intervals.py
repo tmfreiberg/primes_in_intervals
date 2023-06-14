@@ -176,17 +176,53 @@ def overlap_cp(C,H):
     output['header']['contents'].append('data')
     return output
 
+# PRIME-STARTING INTERVALS
+
+def prime_start_cp(C,H):
+    C.sort()
+    P = postponed_sieve()
+    Q = postponed_sieve()
+    p = next(P)
+    q = next(Q)    
+    output = { 'header' : {'interval_type' : 'prime_start', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : []} }
+    data = { C[0] : { m: 0 for m in range(H + 1)} }
+    current = { m : 0 for m in range(H + 1) }
+    m = 0
+    while p <= C[0]:
+        p = next(P)
+    while q <= p:
+        q = next(Q) 
+    for i in range(len(C)):
+        M, N = C[i - 1], C[i]          
+        while p <= N:
+            while q <= p + H:
+                m += 1
+                q = next(Q)
+            current[m] += 1            
+            p = next(P)
+            m += -1
+        data[N] = {}
+        for k in range(H + 1):
+            data[N][k] = current[k]
+    trimmed_data = zeros(data)
+    output['data'] = trimmed_data
+    output['header']['contents'].append('data')
+    return output
+
 # A SINGLE FUNCTION
 
 def intervals(C,H,interval_type='overlap'):
-    # interval_type is either 'disjoint' or not (defaults to 'overlap' unless 'disjoint' is explicitly given).
+    # interval_type is either 'disjoint' or 'prime-start' or not (defaults to 'overlap' unless 'disjoint'/'prime_start' is explicitly given).
     if interval_type == 'disjoint':
         return disjoint_cp(C,H)
-    # if interval_type is 'overlap' or not given or is anything string other than 'disjoint'
+    # if interval_type is 'prime-start' or not given or is anything string other than 'disjoint'
+    if interval_type == 'prime_start': 
+        return prime_start_cp(C,H)
+    # if interval_type is 'overlap' or not given or is anything string other than 'disjoint' or 'prime_start'
     if interval_type == 'overlap': 
         return overlap_cp(C,H)
-
- # ANY INTERVALS: A MORE GENERAL AND ELEGANT (BUT SLOWER) FUNCTION
+    
+# ANY INTERVALS: A MORE GENERAL (BUT SLOWER) FUNCTION
 
 # This is the core function. We need to make a "checkpoint" version and update all the related functions (display, etc.).
 
@@ -228,12 +264,11 @@ def anyIntervals(M,N,H,generator1,generator2):
     output = { m : output[m] for m in range(H + 1) if output[m] != 0}
     return output
 
-      
 # SAVE
 
 # We have a database called primes_in_intervals_db.
-# Tables therein include one for disjoint intervals (disjoint_raw) and one for overlapping intervals (overlap_raw).
-# First column shall be A (lower bound), second column B (upper bound), third column H (interval length), where we consider intervals of the form (a, a + H] for a in (A,B] (a in an arithmetic progression mod H in the disjoint case).
+# Tables therein include one for disjoint intervals (disjoint_raw), one for overlapping intervals (overlap_raw), and one for prime-starting intervals (prime_start_raw)
+# First column shall be A (lower bound), second column B (upper bound), third column H (interval length), where we consider intervals of the form (a, a + H] for a in (A,B] (a in an arithmetic progression mod H in the disjoint case, a prime in the prime-start case).
 # The first three columns (A,B,H) will constitute each table's primary key.
 # The next max_primes columns shall contain the number of such intervals with m primes, where m = 0,1,...,max_primes will easily cover any situation we will be interested in, where
 
@@ -247,6 +282,7 @@ for i in range(max_primes + 1):
 conn = sqlite3.connect('primes_in_intervals_db')
 conn.execute('CREATE TABLE IF NOT EXISTS disjoint_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
 conn.execute('CREATE TABLE IF NOT EXISTS overlap_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
+conn.execute('CREATE TABLE IF NOT EXISTS prime_start_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
 conn.commit()
 conn.close()
 
@@ -276,6 +312,8 @@ def save(data):
             conn.executemany('INSERT OR IGNORE INTO disjoint_raw VALUES(' + qstring + ')', [tuple(row)])
         if data['header']['interval_type'] == 'overlap':
             conn.executemany('INSERT OR IGNORE INTO overlap_raw VALUES(' + qstring + ')', [tuple(row)])
+        if data['header']['interval_type'] == 'prime_start':
+            conn.executemany('INSERT OR IGNORE INTO prime_start_raw VALUES(' + qstring + ')', [tuple(row)])            
     conn.commit()
     conn.close()
 
@@ -299,7 +337,14 @@ def show_table(interval_type, description='description'):
             print('Database contains no table for overlapping intervals.')
             return
         else:        
-            res = conn.execute("SELECT * FROM overlap_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC")            
+            res = conn.execute("SELECT * FROM overlap_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC") 
+    if interval_type == 'prime_start':
+        existence_check = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='prime_start_raw'").fetchall()
+        if existence_check == []:
+            print('Database contains no table for prime-starting intervals.')
+            return
+        else:        
+            res = conn.execute("SELECT * FROM prime_start_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC")            
     rows = res.fetchall()
     c.close()
     conn.close()
@@ -314,6 +359,8 @@ def show_table(interval_type, description='description'):
             return df.style.set_caption('Disjoint intervals. ' + r'Column with label $m$ shows $\#\{1 \le k \le (B - A)/H : \pi(A + kH) - \pi(A + (k - 1)H) = m \}$')
         if interval_type == 'overlap':
             return df.style.set_caption('Overlapping intervals. ' + r'Column with label $m$ shows $\#\{A < a \le B : \pi(a + H) - \pi(a) = m \}$')
+        if interval_type == 'prime_start':
+            return df.style.set_caption('Prime-starting intervals. ' + r'Column with label $m$ shows $\#\{A < p \le B : \pi(p + H) - \pi(p) = m \}$, $p$ prime.')
 
 
 # Now we define a function that takes H as an input and reconstructs the original dictionary(ies) we created that correspond to interval length H.
@@ -338,7 +385,14 @@ def retrieve(H, interval_type = 'overlap'):
             print('Database contains no table for overlapping intervals.')
             return
         else:        
-            res = conn.execute("SELECT * FROM overlap_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,))            
+            res = conn.execute("SELECT * FROM overlap_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,)) 
+    if interval_type == 'prime_start':
+        existence_check = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='prime_start_raw'").fetchall()
+        if existence_check == []:
+            print('Database contains no table for prime-starting intervals.')
+            return
+        else:        
+            res = conn.execute("SELECT * FROM prime_start_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,))            
     rows = res.fetchall()
     #rows = [(C[0], C[k], H, g(0), ..., g(100)), k = 0,1,...), (C'[0], C'[k], H, g(0),...,g(100)), k = 0,1,...),...]
     c.close()
@@ -639,7 +693,10 @@ def frei_alt(H,m,t):
     return np.exp(-t)*(t**m/gamma(m + 1))*(1 + (t/H)*Q_1 - ((np.log(H) - MS)/(H))*Q_2)
 
 # And now the compare function.
-# Input a dataset and MODIFY it by adding a 'comparison' dictionary that is analogous to the 'data' dictionary, but instead of the inner-most values being g(m) or h(m) (number of intervals containing m primes), they are tuples consiting of the actual values and three predictions.
+# Input a dataset and MODIFY it by adding a 'comparison' dictionary that is analogous to the 'data' dictionary, but instead of the inner-most values being g(m) or h(m) (number of intervals containing m primes), they are tuples consisting of the actual values and three predictions. 
+# Should only compare the three predictions in the case of overlapping intervals (and even then, we shouldn't compare the Binomial with parameter lambda/H with the alternative prediction with parameter lambda*).
+# Nevertheless, we'll allow the comparisons to be done in the disjoint and prime-start cases anyway.
+# When we have predictions in those cases (second-order terms may be different than in the overlapping case), we can update the code.
 
 def compare(dataset):
     if 'data' in dataset.keys():
@@ -660,13 +717,15 @@ def compare(dataset):
                 multiplier = c - A # the number of intervals considered, in the overlapping case
             if interval_type == 'disjoint':
                 multiplier = (c - A)//H # the number of intervals considered, in the disjoint case
+            if interval_type == 'prime_start':
+                multiplier = sum(dataset['data'][c].values()) # the number of intervals considered, in the prime-start case
             for m in dataset['data'][c].keys():
                 binom_prob = binom_pmf(H,m,p)
                 frei_prob = frei(H,m,H*p)
                 frei_alt_prob = frei_alt(H,m,H*p_alt)
                 binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
-                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
-                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me, but only in the case of overlapping intervals
+                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate (overlapping intervals)
                 comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['data'][c][m], binom_pred, frei_pred, frei_alt_pred)
         dataset['comparison'] = {}
         for c in C:
@@ -691,13 +750,15 @@ def compare(dataset):
                 multiplier = c[1] - c[0] # the number of intervals considered, in the overlapping case
             if interval_type == 'disjoint':
                 multiplier = (c[1] - c[0])//H # the number of intervals considered, in the disjoint case
+            if interval_type == 'prime_start':
+                multiplier = sum(dataset['nested_interval_data'][c].values()) # the number of intervals considered, in the prime-start case
             for m in dataset['nested_interval_data'][c].keys():
                 binom_prob = binom_pmf(H,m,p)
                 frei_prob = frei(H,m,H*p)
                 frei_alt_prob = frei_alt(H,m,H*p_alt)
                 binom_pred = int(binom_prob*multiplier) # what dataset['data'][c][m] should be according to Cramer's model
-                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me
-                frei_alt_pred = int(frei_alt_prob*multiplier) # the alternative estimate
+                frei_pred = int(frei_prob*multiplier) # what dataset['data'][c][m] should be up to second-order approximation, at least around the centre of the distribution, according to me, but only in the case of overlapping intervals
+                frei_alt_pred = int(frei_alt_prob*multiplier) # alternative prediction (overlapping intervals)
                 comparison[c][m] = (dataset['distribution'][c][m], binom_prob, frei_prob, frei_alt_prob), (dataset['nested_interval_data'][c][m], binom_pred, frei_pred, frei_alt_pred)
         dataset['comparison'] = {}
         for c in C:
@@ -913,6 +974,12 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     return df            
             else:
                 interval_type = dataset['header']['interval_type']
+                if interval_type == 'overlap':
+                    word = 'overlapping'
+                if interval_type == 'disjoint':
+                    word = 'disjoint'
+                if interval_type == 'prime_start':
+                    word = 'left endpoint prime'
                 A = dataset['header']['lower_bound']
                 B = dataset['header']['upper_bound']
                 H = dataset['header']['interval_length']
@@ -920,7 +987,7 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     counts = 'non-cumulative'
                 else:
                     counts = 'cumulative'
-                text = f'Interval type: {interval_type}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
+                text = f'Interval type: {word}. Lower bound: {A}. Upper bound: {B}. Interval length: {H}. Partial counts: {counts}.'        
                 if comparisons == 'absolute' or comparisons == 'probabilities':
                     text = text + 'In tuple (a,b,c,d), a is actual data, b is Binomial prediction, c is frei prediction, and d is frei_alt prediction.'
                 if zeroth_item == 'no show':
@@ -948,6 +1015,8 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     output[i] = { 'B - A' : C[i][1] - C[i][0], 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 if interval_type == 'disjoint':
                     output[i] = { '(B - A)/H' : (C[i][1] - C[i][0])//H, 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+                if interval_type == 'prime_start':
+                    output[i] = { 'pi(B) - pi(A)' : sum(dataset['nested_interval_data'][C[i]].values()), 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 if not(comparisons == 'absolute' or comparisons == 'probabilities'):
                     for m in M:
                         output[i][m] = dataset['nested_interval_data'][C[i]][m]
@@ -1152,5 +1221,3 @@ def overlap_extension(A,B,H,M):
                 q = next(Q)
     output = { m : output[m] for m in output.keys() if output[m] != 0}
     return show_me, output
-
-
