@@ -1,8 +1,8 @@
-[Example 1](#eg1) | [Example 2](#eg2) | [Example 3](#eg3)
-
 ```python
 import primes_in_intervals as pii
 ```
+
+<sup>Jump to: ↓ [Example 2](#eg2) | ↓↓ [Example 3](#eg3) </sup>
 
 <a id='eg1'></a>
 **Example 1.** Tables from Gauss's _Nachlass_. Create data for primes in disjoint intervals of length $100$ (starting at multiples of $100$), up to $10^7$. Checkpoints every $10^5$.
@@ -35,6 +35,8 @@ pii.dfi.export(NACHLASS3df, 'NACHLASS3df.png')
 Here's the original: Gauss/Goldschmidt were only short by $21$ primes in the end!
 
 ![SegmentLocal](images/examples/nachlass.jpg)
+
+<sup>Jump to: ↑ [Example 1](#eg1) | ↓ [Example 3](#eg3) | ↓ [Plot](#eg3plot) </sup>
 
 <a id='eg2'></a>
 **Example 2.** Let's look at a series of nested intervals centred around $N = [e^{17}] = 24,154,952$. We take the density of primes close to $N$ as $1/(\log N - 1)$, which is $1/15.999999968802452\ldots$, virtually $1/16$. We'll get data for intervals of length $64, 68, 72, 76, 80$. 
@@ -101,7 +103,6 @@ pii.winners(EXP17NEST[76])
 EXP17_76_NESTwinners = pii.display(EXP17NEST[76], winners='show')
 pii.dfi.export(EXP17_76_NESTwinners, 'EXP17_76_NESTwinners.png')
 ```
-
 ![SegmentLocal](images/examples/EXP17_76_NESTwinners.png)
 
 Finally, let's make an animated plot, with one frame for each of the intervals considered.
@@ -214,11 +215,12 @@ Save the animation...
 ```python
 HTML(X_anim.to_html5_video())
 ```
-
+<a id='eg2plot'></a>
 ![SegmentLocal](images/examples/EXP17_76_NESTanim.gif)
 
-<a id='eg3'></a>
+<sup>Jump to: ↑↑ [Example 1](#eg1) | ↑ [Example 2](#eg2) | Plot </sup>
 
+<a id='eg3'></a>
 **Example 3.** Let's go through the steps of [Example 2](#eg2), but instead of counting all intervals of the form $(a, a + H]$ as $a$ runs over all integers in the range $(N - M, N + M]$, let's consider only intervals of the form $(p, p + H]$ as $p$ runs over only the _primes_ in the range $(N - M, N + M]$. We have not yet worked through the details of the second-order term in our prediction in this case, but up to first order approximation we should still have $e^{-\lambda}\lambda^m/m!$...
 
 ```python
@@ -258,15 +260,9 @@ pii.winners(PSEXP17NEST[76])
 PSEXP17_76_NESTwinners = pii.display(PSEXP17NEST[76], winners='show')
 pii.dfi.export(PSEXP17_76_NESTwinners, 'PSEXP17_76_NESTwinners_tail10.png')
 ```
-![SegmentLocal](images/examples/PSEXP17_76_NESTcompare_tail10.png)
+![SegmentLocal](images/examples/PSEXP17_76_NESTwinners_tail10.png)
 
 ```python
-import matplotlib.pyplot as plt # for plotting distributions
-from matplotlib import animation # for animating sequences of plots
-from matplotlib import rc # to help with the animation
-from IPython.display import HTML # to save animations
-from matplotlib.animation import PillowWriter # to save animations as a gif
-
 # HH = [64, 68, 72, 76, 80]
 X = PSEXP17NEST[HH[3]]
 
@@ -371,7 +367,7 @@ plt.show()
 ```python
 HTML(X_anim.to_html5_video())
 ```
-    
+<a id='eg3plot'></a> 
 ![SegmentLocal](images/examples/PSEXP17_76_NESTanim.gif)
 
 
