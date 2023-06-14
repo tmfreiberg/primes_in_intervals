@@ -861,8 +861,10 @@ def prime_start_cp(C,H):
     Q = postponed_sieve()
     p = next(P)
     q = next(Q)    
+    output = { 'header' : {'interval_type' : 'prime-start', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : []} }
+    output[C[0]] = {  m : 0 for m in range(H + 1) }
+    data = { C[0] : { m: 0 for m in range(H + 1)} }
     current = { m : 0 for m in range(H + 1) }
-    output = { C[0] : { m : 0 for m in range(H + 1)} }
     m = 0
     while p <= C[0]:
         p = next(P)
@@ -877,11 +879,13 @@ def prime_start_cp(C,H):
             current[m] += 1            
             p = next(P)
             m += -1
-        output[N] = {}
+        data[N] = {}
         for k in range(H + 1):
-            output[N][k] = current[k]
-    trimmed_output = zeros(output)
-    return trimmed_output
+            data[N][k] = current[k]
+    trimmed_data = zeros(data)
+    output['data'] = trimmed_data
+    output['header']['contents'].append('data')
+    return output
 ```
 ```python
 start = timer()
@@ -893,7 +897,7 @@ end - start
 1.715596199966967
 ```
 ```python
-prime_start_cp_test[3000000] == prime_start_test
+prime_start_cp_test['data'][3000000] == prime_start_test
 ```
 ```
 True
