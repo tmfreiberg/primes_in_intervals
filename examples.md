@@ -1,6 +1,10 @@
+[Example 1](#eg1) | [Example 2](#eg2) | [Example 3](#eg3)
+
 ```python
 import primes_in_intervals as pii
 ```
+
+<a id='eg1'></a>
 **Example 1.** Tables from Gauss's _Nachlass_. Create data for primes in disjoint intervals of length $100$ (starting at multiples of $100$), up to $10^7$. Checkpoints every $10^5$.
 
 By the bye, an interval of the form $[100k, 100k + 100)$ is referred to as a "Centade" in Gauss's _Nachlass_. Analogous to the term Decade (a 10-year period from years '0 to '9), a Centade is a 100-year period from '00 to '99. 
@@ -32,6 +36,7 @@ Here's the original: Gauss/Goldschmidt were only short by $21$ primes in the end
 
 ![SegmentLocal](images/examples/nachlass.jpg)
 
+<a id='eg2'></a>
 **Example 2.** Let's look at a series of nested intervals centred around $N = [e^{17}] = 24,154,952$. We take the density of primes close to $N$ as $1/(\log N - 1)$, which is $1/15.999999968802452\ldots$, virtually $1/16$. We'll get data for intervals of length $64, 68, 72, 76, 80$. 
 ```python
 import numpy as np
@@ -212,8 +217,162 @@ HTML(X_anim.to_html5_video())
 
 ![SegmentLocal](images/examples/EXP17_76_NESTanim.gif)
 
+<a id='eg3'></a>
 
+**Example 3.** Let's go through the steps of [Example 2](#eg2), but instead of counting all intervals of the form $(a, a + H]$ as $a$ runs over all integers in the range $(N - M, N + M]$, let's consider only intervals of the form $(p, p + H]$ as $p$ runs over only the _primes_ in the range $(N - M, N + M]$. We have not yet worked through the details of the second-order term in our prediction in this case, but up to first order approximation we should still have $e^{-\lambda}\lambda^m/m!$...
 
+```python
+N = int(np.exp(17))
+HH = [64, 68, 72, 76, 80]
+C = list(range(N - 10**4,N + 10**4 + 1, 10**2))
+PSEXP17 = {}
+for H in HH:
+    PSEXP17[H] = pii.intervals(C, H, 'prime_start')
+```
+
+```python
+PSEXP17NEST = {}
+for H in HH:
+    PSEXP17NEST[H] = pii.nest(PSEXP17[H])
+    pii.analyze(PSEXP17NEST[H])
+```
+
+```python
+PSEXP17_76_NESTtable = pii.display(PSEXP17NEST[76])
+PSEXP17_76_NESTtable
+pii.dfi.export(PSEXP17_76_NESTtable.tail(5), 'PSEXP17_76_NESTtable.png')
+```
+
+![SegmentLocal](images/examples/PSEXP17_76_NESTtable.png)
+
+```python
+pii.compare(PSEXP17NEST[76])
+PSEXP17_76_NESTcompare = pii.display(PSEXP17NEST[76], comparisons='absolute').tail(5)
+pii.dfi.export(PSEXP17_76_NESTcompare, 'PSEXP17_76_NESTcompare_tail.png')
+```
+
+![SegmentLocal](images/examples/PSEXP17_76_NESTcompare_tail.png)
+
+```python
+pii.winners(PSEXP17NEST[76])
+PSEXP17_76_NESTwinners = pii.display(PSEXP17NEST[76], winners='show')
+pii.dfi.export(PSEXP17_76_NESTwinners, 'PSEXP17_76_NESTwinners_tail10.png')
+```
+![SegmentLocal](images/examples/PSEXP17_76_NESTcompare_tail10.png)
+
+```python
+import matplotlib.pyplot as plt # for plotting distributions
+from matplotlib import animation # for animating sequences of plots
+from matplotlib import rc # to help with the animation
+from IPython.display import HTML # to save animations
+from matplotlib.animation import PillowWriter # to save animations as a gif
+
+# HH = [64, 68, 72, 76, 80]
+X = PSEXP17NEST[HH[3]]
+
+interval_type = X['header']['interval_type']
+A = X['header']['lower_bound']
+H = X['header']['interval_length']
+C = list(X['distribution'].keys())
+
+plt.rcParams.update({'font.size': 22})
+
+fig, ax = plt.subplots(figsize=(22, 11))
+fig.suptitle('Primes in intervals')
+
+hor_axis = list(X['distribution'][C[-1]].keys())
+y_min, y_max = 0, 0
+for c in C:
+    for m in X['distribution'][c].keys():
+        if y_max < X['distribution'][c][m]:
+            y_max = X['distribution'][c][m]
+    
+def plot(c):
+    ax.clear()
+
+    mu = X['statistics'][c]['mean']
+    sigma = X['statistics'][c]['var']
+    med = X['statistics'][c]['med']
+    if med == int(med):
+        med = int(med)
+    modes = X['statistics'][c]['mode']
+    
+    # Bounds for the plot, and horizontal axis tick marks. 
+    ax.set(xlim=(hor_axis[0]-0.5, hor_axis[-1]+0.5), ylim=(0,np.ceil(100*y_max)/100 ))
+
+    # The data and histogram
+    ver_axis = list(X['distribution'][c].values())
+    ax.bar(hor_axis, ver_axis, color='#e0249a', zorder=2.5, alpha=0.3, label=r'$\mathrm{Prob}(X = m)$')
+    ax.plot(hor_axis, ver_axis, 'o', color='red', zorder=2.5)  
+
+    # Predictions for comparison
+    A = c[0]
+    B = c[1]
+    N = (A + B)//2
+    exponent= str(int(np.log(N)) + 1)
+    M = N - A
+    k = M//10**2
+    PI = sum(X['nested_interval_data'][c].values())
+    p = 1/(np.log(N) - 1)
+    p_alt = 1/(np.log(N))
+    x = np.linspace(hor_axis[0],hor_axis[-1],100)
+    ax.plot(x, pii.binom_pmf(H,x,p), '--', color='orange', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda/H)$')
+    ax.plot(x, pii.binom_pmf(H,x,p_alt), '--', color='yellow', zorder=3.5, label=r'$\mathrm{Binom}(H,\lambda^*/H)$')
+    ax.plot(x, pii.frei(H,x,H*p), '--', color='green', zorder=3.5, label=r'$\mathrm{F}(H,m,\lambda)$')
+    ax.plot(x, pii.frei_alt(H,x,H*p_alt), '--', color='blue', zorder=3.5, label=r'$\mathrm{F^*}(H,m,\lambda^*)$')
+    
+    # Overlay information
+    ax.text(0.25,0.90,r'NB: $F$ and $F^*$ might not be applicable' + '\n' + 'in this case, without modification.', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    if B != C[-1][1]:
+        ax.text(0.75,0.15,fr'$X = \pi(p + H) - \pi(p)$' + '\n\n' 
+                +  fr'$N - M < p \leq N + M$, $p$ prime' + '\n\n' 
+                + fr'$\pi(N + M) - \pi(N - M) = {PI}$'+ '\n\n'
+                + fr'$H = {H}$, '   
+                + r'$N = [e^{17}]$, '   
+                + fr'$M = 10^2k$, $k = {k}$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n'
+                + fr'$\lambda^* = H/\log N = {H*p_alt:.5f}$' + '\n\n'
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    if B == C[-1][1]:
+        ax.text(0.75,0.15,fr'$X = \pi(p + H) - \pi(p)$' + '\n\n' 
+                +  fr'$N - M < p \leq N + M$, $p$ prime' + '\n\n' 
+                + fr'$\pi(N + M) - \pi(N - M) = {PI}$'+ '\n\n'
+                + fr'$H = {H}$, '   
+                + r'$N = [e^{17}]$, '  
+                + fr'$M = 10^4$' + '\n\n' 
+                + fr'$\lambda = H/(\log N - 1) = {H*p:.5f}$' + '\n\n' 
+                + fr'$\lambda^* = H/\log N = {H*p_alt:.5f}$' + '\n\n' 
+                + r'$\mathbb{E}[X] = $' + f'{mu:.5f}' + '\n\n' 
+                + r'$\mathrm{Var}(X) = $' + f'{sigma:.5f}' + '\n\n' 
+                + fr'median : ${med}$' + '\n\n' 
+                + fr'mode(s): ${modes}$', bbox=dict(facecolor='white', edgecolor='white', alpha=0.5), transform=ax.transAxes)
+    # Formating/labeling
+    ax.set_xticks(hor_axis)
+    ax.set_xlabel(r'$m$ (number of primes in an interval)')
+    ax.set_ylabel('prop\'n of intervals with' + r' $m$ ' + 'primes')
+    ax.legend(loc=2, ncol=1, framealpha=0.5)
+
+    # A grid is helpful, but we want it underneath everything else. 
+    ax.grid(True,zorder=0,alpha=0.7)   
+    
+# Generate the animation
+X_anim = animation.FuncAnimation(fig, plot, frames=C, interval=100, blit=False, repeat=False)
+
+# This is supposed to remedy the blurry axis ticks/labels. 
+plt.rcParams['savefig.facecolor'] = 'white'
+
+plot(C[-1])
+plt.show()
+```
+
+```python
+HTML(X_anim.to_html5_video())
+```
+    
+![SegmentLocal](images/examples/PSEXP17_76_NESTanim.gif)
 
 
 
