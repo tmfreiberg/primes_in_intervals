@@ -53,8 +53,8 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 ..........[Disjoint intervals, with checkpoints](#disjoint_checkpoints)<br>
 ..........[Overlapping intervals](#overlapping)<br>
 ..........[Overlapping intervals, with checkpoints](#overlapping_checkpoints)<br>
-..........[A single function](#single_function)<br>
 ..........[Prime-starting intervals, and more general function](#prime_starting)<br>
+..........[A single function](#single_function)<br>
 ..........[To do](#to_do)<br>
 [Raw data](#raw_data)<br> .......... [Example 1](#eg1generate) | [Example 2](#eg2generate)<br>
 [Save](#save)<br> .......... [Example 1](#eg1save) | [Example 2](#eg2save)<br>
@@ -625,7 +625,7 @@ overlap_test_dict2, sum([v for v in overlap_test_dict2.values()]), sum([k*v for 
 
 <a id='overlapping_checkpoints'></a>
 #### Overlapping intervals, with checkpoints
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals](#overlapping) | ↓ [A single function](#single_function) </sup>
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals](#overlapping) | ↓ [Prime-starting intervals, and a more general function](#prime_starting) </sup>
 
 Analogous to [disjoint intervals, with checkpoints](#disjoint_checkpoints).
 
@@ -776,20 +776,10 @@ another_test_olap_cp_df
 100	2	22	28	22	8	2	10	5	1
 ```
 
-<a id='single_function'></a>
-#### A single function
-<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals, with checkpoints](#overlapping_checkpoints) | ↓ [To do](#to_do) </sup>
-
-```python
-def intervals(C,H,interval_type='overlap'): 
-    if interval_type == 'disjoint':
-        return disjoint_cp(C,H)
-    if interval_type == 'overlap': 
-        return overlap_cp(C,H)
-```
-
 <a id='prime_starting'></a>
 #### Prime-starting intervals, and a more general function
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Overlapping intervals, with checkpoints](#prime_starting) | ↓ [A single function](#single_function) </sup>
+
 
 We have considered intervals of the form $(a, a + H]$, where $a$ runs over integers in an arithmetic progression modulo $H$ (disjoint intervals), and where are runs over all integers (overlapping intervals). We wish to consider intervals for which $a$ is always prime. The basic function is the following.
 
@@ -1039,6 +1029,23 @@ anyIntervalsPrint(10,31,10,postponed_sieve(),postponed_sieve())
 ['x', 37, 41]
 31 < [37, 41] <= 41, 2 : 5
 {2: 5, 3: 2}
+```
+
+<a id='single_function'></a>
+#### A single function
+<sup>Jump to: ↑↑ [Contents](#contents) | ↑ [Prime-starting intervals, and a more general function](#prime_starting) | ↓ [To do](#to_do) </sup>
+
+```python
+def intervals(C,H,interval_type='overlap'):
+    # interval_type is either 'disjoint' or 'prime-start' or not (defaults to 'overlap' unless 'disjoint'/'prime-start' is explicitly given).
+    if interval_type == 'disjoint':
+        return disjoint_cp(C,H)
+    # if interval_type is 'prime-start' or not given or is anything string other than 'disjoint'
+    if interval_type == 'prime-start': 
+        return prime_start_cp(C,H)
+    # if interval_type is 'overlap' or not given or is anything string other than 'disjoint' or 'prime-start'
+    if interval_type == 'overlap': 
+        return overlap_cp(C,H)
 ```
 
 <a id='to_do'></a>
