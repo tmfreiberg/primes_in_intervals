@@ -54,7 +54,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 ..........[Overlapping intervals](#overlapping)<br>
 ..........[Overlapping intervals, with checkpoints](#overlapping_checkpoints)<br>
 ..........[A single function](#single_function)<br>
-..........[Prime-starting intervals, and more elegant solution](#prime_starting)<br>
+..........[Prime-starting intervals, and more general function](#prime_starting)<br>
 ..........[To do](#to_do)<br>
 [Raw data](#raw_data)<br> .......... [Example 1](#eg1generate) | [Example 2](#eg2generate)<br>
 [Save](#save)<br> .......... [Example 1](#eg1save) | [Example 2](#eg2save)<br>
@@ -789,9 +789,127 @@ def intervals(C,H,interval_type='overlap'):
 ```
 
 <a id='prime_starting'></a>
-#### Prime-starting intervals, and a more elegant solution
+#### Prime-starting intervals, and a more general function
 
-We have considered intervals of the form $(a, a + H]$, where $a$ runs over integers in an arithmetic progression modulo $H$ (disjoint intervals), and where are runs over all integers (overlapping intervals). We wish to consider intervals for which $a$ is always prime. In fact, why not consider $a$ running over any strictly increasing sequence $A$ of nonnegative integers? For that matter, why restrict ourselves to primes in intervals? Why don't we consider the number of intervals with $m$ elements from another strictly increasing sequence $B$ of nonnegative integers? If we can generate $A$ and $B$, we can count intervals $(a, a + H]$ with $a$ running over $A$, containing a given number of elements of $B$. This can be done with ```anyIntervals``` below.
+We have considered intervals of the form $(a, a + H]$, where $a$ runs over integers in an arithmetic progression modulo $H$ (disjoint intervals), and where are runs over all integers (overlapping intervals). We wish to consider intervals for which $a$ is always prime. The basic function is the following.
+
+```python
+def prime_start(M,N,H):
+    P = postponed_sieve()
+    Q = postponed_sieve()
+    p = next(P)
+    q = next(Q)
+    while p <= M:
+        p = next(P)
+    while q <= p:
+        q = next(Q) 
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    while p <= N:
+        while q <= p + H:
+            m += 1
+            q = next(Q)
+        output[m] += 1
+        p = next(P)
+        m += -1
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+```
+
+```python
+prime_start(10,20,20)
+# (11,31] has 13, 17, 19, 23, 29, 31
+# (13,33] has 17, 19, 23, 29, 31
+# (17,37] has 19, 23, 29, 31, 37
+# (19,39] has 23, 29, 31, 37
+# Therefore should return {4: 1, 5: 2, 6: 1}
+```
+```
+{4: 1, 5: 2, 6: 1}
+```
+
+```python
+from timeit import default_timer as timer
+start = timer()
+prime_start_test = prime_start(2000000,3000000,100)
+end = timer()
+end - start
+```
+```
+1.6957543999888003
+```
+```python
+prime_start_test
+```
+```
+{0: 12,
+ 1: 155,
+ 2: 799,
+ 3: 2584,
+ 4: 6063,
+ 5: 10259,
+ 6: 13359,
+ 7: 12896,
+ 8: 10312,
+ 9: 6468,
+ 10: 3175,
+ 11: 1283,
+ 12: 396,
+ 13: 97,
+ 14: 15,
+ 15: 5,
+ 16: 2,
+ 17: 3}
+```
+
+Here is the version with checkpoints.
+
+```python
+def prime_start_cp(C,H):
+    C.sort()
+    P = postponed_sieve()
+    Q = postponed_sieve()
+    p = next(P)
+    q = next(Q)    
+    current = { m : 0 for m in range(H + 1) }
+    output = { C[0] : { m : 0 for m in range(H + 1)} }
+    m = 0
+    while p <= C[0]:
+        p = next(P)
+    while q <= p:
+        q = next(Q) 
+    for i in range(len(C)):
+        M, N = C[i - 1], C[i]          
+        while p <= N:
+            while q <= p + H:
+                m += 1
+                q = next(Q)
+            current[m] += 1            
+            p = next(P)
+            m += -1
+        output[N] = {}
+        for k in range(H + 1):
+            output[N][k] = current[k]
+    trimmed_output = zeros(output)
+    return trimmed_output
+```
+```python
+start = timer()
+prime_start_cp_test = prime_start_cp(list(range(2000000,3000001,100000)),100)
+end = timer()
+end - start
+```
+```
+1.715596199966967
+```
+```python
+prime_start_cp_test[3000000] == prime_start_test
+```
+```
+True
+```
+
+In fact, why not consider $a$ running over any strictly increasing sequence $A$ of nonnegative integers? For that matter, why restrict ourselves to primes in intervals? Why don't we consider the number of intervals with $m$ elements from another strictly increasing sequence $B$ of nonnegative integers? If we can generate $A$ and $B$, we can count intervals $(a, a + H]$ with $a$ running over $A$, containing a given number of elements of $B$. This can be done with ```anyIntervals``` below.
 
 ```python
 def anyIntervals(M,N,H,generator1,generator2):
