@@ -271,7 +271,7 @@ pii.dfi.export(PSEXP17_76_NESTwinners, 'PSEXP17_76_NESTwinners_tail10.png')
 ```
 ![SegmentLocal](images/examples/PSEXP17_76_NESTwinners_tail10.png)
 
-And now we can grok everything with an animation...
+And now we can grok everything with an animation... Actually, these not-necessarily-predictions look half-decent, given that there are only about $1000$ intervals being used for the data.
 
 ```python
 # HH = [64, 68, 72, 76, 80]
