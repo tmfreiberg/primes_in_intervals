@@ -7,7 +7,7 @@ import primes_in_intervals as pii
 <a id='eg1'></a>
 **Example 1.** Tables from Gauss's _Nachlass_. Create data for primes in disjoint intervals of length $100$ (starting at multiples of $100$), up to $10^7$. Checkpoints every $10^5$.
 
-By the bye, an interval of the form $[100k, 100k + 100)$ is referred to as a "Centade" in Gauss's _Nachlass_. Analogous to the term Decade (a 10-year period from years '0 to '9, a Centade is a 100-year period from '00 to '99. 
+By the bye, an interval of the form $[100k, 100k + 100)$ is referred to as a "Centade" in Gauss's _Nachlass_. Analogous to the term Decade (a 10-year period from years '0 to '9), a Centade is a 100-year period from '00 to '99. 
 
 ```python
 C = list(range(0,10*10**6 + 1, 10**5))
