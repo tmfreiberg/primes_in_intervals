@@ -36,7 +36,7 @@ Here's the original: Gauss/Goldschmidt were only short by $21$ primes in the end
 
 ![SegmentLocal](images/examples/nachlass.jpg)
 
-<sup>Jump to: ↑ [Example 1](#eg1) | ↓ [Example 3](#eg3) | ↓ [Plot](#eg3plot) </sup>
+<sup>Jump to: ↑ [Example 1](#eg1) | ↓ [Example 3](#eg3) | ↓ [Plot](#eg2plot) </sup>
 
 <a id='eg2'></a>
 **Example 2.** Let's look at a series of nested intervals centred around $N = [e^{17}] = 24,154,952$. We take the density of primes close to $N$ as $1/(\log N - 1)$, which is $1/15.999999968802452\ldots$, virtually $1/16$. We'll get data for intervals of length $64, 68, 72, 76, 80$. 
@@ -218,7 +218,7 @@ HTML(X_anim.to_html5_video())
 <a id='eg2plot'></a>
 ![SegmentLocal](images/examples/EXP17_76_NESTanim.gif)
 
-<sup>Jump to: ↑↑ [Example 1](#eg1) | ↑ [Example 2](#eg2) | Plot </sup>
+<sup>Jump to: ↑↑ [Example 1](#eg1) | ↑ [Example 2](#eg2) | ↓ [Plot](#(#eg3plot)) </sup>
 
 <a id='eg3'></a>
 **Example 3.** Let's go through the steps of [Example 2](#eg2), but instead of counting all intervals of the form $(a, a + H]$ as $a$ runs over all integers in the range $(N - M, N + M]$, let's consider only intervals of the form $(p, p + H]$ as $p$ runs over only the _primes_ in the range $(N - M, N + M]$. We have not yet worked through the details of the second-order term in our prediction in this case, but up to first order approximation we should still have $e^{-\lambda}\lambda^m/m!$...
