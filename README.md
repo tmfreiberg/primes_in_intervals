@@ -861,7 +861,7 @@ def prime_start_cp(C,H):
     Q = postponed_sieve()
     p = next(P)
     q = next(Q)    
-    output = { 'header' : {'interval_type' : 'prime-start', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : []} }
+    output = { 'header' : {'interval_type' : 'prime_start', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : []} }
     output[C[0]] = {  m : 0 for m in range(H + 1) }
     data = { C[0] : { m: 0 for m in range(H + 1)} }
     current = { m : 0 for m in range(H + 1) }
@@ -1044,10 +1044,10 @@ def intervals(C,H,interval_type='overlap'):
     # interval_type is either 'disjoint' or 'prime-start' or not (defaults to 'overlap' unless 'disjoint'/'prime-start' is explicitly given).
     if interval_type == 'disjoint':
         return disjoint_cp(C,H)
-    # if interval_type is 'prime-start' or not given or is anything string other than 'disjoint'
-    if interval_type == 'prime-start': 
+    # if interval_type is 'prime_start' or not given or is anything string other than 'disjoint'
+    if interval_type == 'prime_start': 
         return prime_start_cp(C,H)
-    # if interval_type is 'overlap' or not given or is anything string other than 'disjoint' or 'prime-start'
+    # if interval_type is 'overlap' or not given or is anything string other than 'disjoint' or 'prime_start'
     if interval_type == 'overlap': 
         return overlap_cp(C,H)
 ```
@@ -1186,6 +1186,7 @@ for i in range(max_primes + 1):
 conn = sqlite3.connect('primes_in_intervals_db')
 conn.execute('CREATE TABLE IF NOT EXISTS disjoint_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
 conn.execute('CREATE TABLE IF NOT EXISTS overlap_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
+conn.execute('CREATE TABLE IF NOT EXISTS prime_start_raw (lower_bound int, upper_bound int, interval_length int,' + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))')
 conn.commit()
 conn.close()
 
@@ -1198,6 +1199,7 @@ conn.close()
 # conn = sqlite3.connect('primes_in_intervals_db')
 # conn.execute('DROP TABLE IF EXISTS disjoint_raw')
 # conn.execute('DROP TABLE IF EXISTS overlap_raw')
+# conn.execute('DROP TABLE IF EXISTS prime_start_raw')
 # conn.close()
 ```
 
@@ -1228,6 +1230,8 @@ def save(data):
             conn.executemany('INSERT OR IGNORE INTO disjoint_raw VALUES(' + qstring + ')', [tuple(row)])
         if data['header']['interval_type'] == 'overlap':
             conn.executemany('INSERT OR IGNORE INTO overlap_raw VALUES(' + qstring + ')', [tuple(row)])
+	if data['header']['interval_type'] == 'prime_start':
+            conn.executemany('INSERT OR IGNORE INTO prime_start_raw VALUES(' + qstring + ')', [tuple(row)]) 		
     conn.commit()
     conn.close()
 ```
@@ -1276,7 +1280,14 @@ def show_table(interval_type, description='description'):
             print('Database contains no table for overlapping intervals.')
             return
         else:        
-            res = conn.execute("SELECT * FROM overlap_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC")            
+            res = conn.execute("SELECT * FROM overlap_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC")  
+    if interval_type == 'prime_start':
+        existence_check = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='prime_start_raw'").fetchall()
+        if existence_check == []:
+            print('Database contains no table for prime-starting intervals.')
+            return
+        else:        
+            res = conn.execute("SELECT * FROM prime_start_raw ORDER BY lower_bound ASC, upper_bound ASC, interval_length ASC")  		
     rows = res.fetchall()
     c.close()
     conn.close()
@@ -1291,6 +1302,8 @@ def show_table(interval_type, description='description'):
             return df.style.set_caption('Disjoint intervals. ' + r'Column with label $m$ shows $\#\{1 \le k \le (B - A)/H : \pi(A + kH) - \pi(A + (k - 1)H) = m \}$')
         if interval_type == 'overlap':
             return df.style.set_caption('Overlapping intervals. ' + r'Column with label $m$ shows $\#\{A < a \le B : \pi(a + H) - \pi(a) = m \}$')
+	if interval_type == 'prime_start':
+            return df.style.set_caption('Prime-starting intervals. ' + r'Column with label $m$ shows $\#\{A < p \le B : \pi(p + H) - \pi(p) = m \}$, $p$ prime.')	
 ```
 
 ```python
@@ -1347,7 +1360,14 @@ def retrieve(H, interval_type = 'overlap'):
             print('Database contains no table for overlapping intervals.')
             return
         else:        
-            res = conn.execute("SELECT * FROM overlap_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,))            
+            res = conn.execute("SELECT * FROM overlap_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,))
+     if interval_type == 'prime_start':
+        existence_check = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='prime_start_raw'").fetchall()
+        if existence_check == []:
+            print('Database contains no table for prime-starting intervals.')
+            return
+        else:        
+            res = conn.execute("SELECT * FROM prime_start_raw WHERE (interval_length) = (?) ORDER BY lower_bound ASC, upper_bound ASC", (H,))      
     rows = res.fetchall()
     #rows = [(C[0], C[k], H, g(0), ..., g(100)), k = 0,1,...), (C'[0], C'[k], H, g(0),...,g(100)), k = 0,1,...),...]
     c.close()
