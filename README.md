@@ -3305,6 +3305,8 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                     output[i] = { 'B - A' : C[i][1] - C[i][0], 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 if interval_type == 'disjoint':
                     output[i] = { '(B - A)/H' : (C[i][1] - C[i][0])//H, 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+		if interval_type == 'prime_start':
+                    output[i] = { 'pi(B) - pi(A)' : sum(dataset['nested_interval_data'][C[i]].values()), 'A' : C[i][0], 'B' : C[i][1],  'H' : H }            
                 for w in dataset['winners'][C[i]]:
                     output[i][w] = dataset['winners'][C[i]][w]   
             df = pd.DataFrame.from_dict(output, orient=orient)
