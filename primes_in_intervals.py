@@ -204,6 +204,9 @@ def anyIntervals(M,N,H,generator1,generator2):
         while b <= a:
             b = next(B)        
         while b <= a + H:
+            if a in Blist:
+                m += -1
+                Blist.pop(0)
             m += 1
             Blist.append(b)
             b = next(B)
