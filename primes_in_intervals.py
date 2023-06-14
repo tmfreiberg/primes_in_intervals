@@ -887,7 +887,7 @@ def display(dataset, orient='index', description='on', zeroth_item='show', count
                 if interval_type == 'disjoint':
                     output[i] = { '(B - A)/H' : (C[i] - C[0])//H, 'A' : C[0], 'B' : C[i],  'H' : H }
                 if interval_type == 'prime_start':
-                    output[i] = { 'pi(B) - pi(A)' : sum(dataset['nested_interval_data'][C[i]].values()), 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
+                    output[i] = { 'pi(B) - pi(A)' : sum(dataset['data'][C[i]].values()), 'A' : C[i][0], 'B' : C[i][1],  'H' : H }
                 for w in dataset['winners'][C[i]]:
                     output[i][w] = dataset['winners'][C[i]][w]  
                 
