@@ -862,7 +862,6 @@ def prime_start_cp(C,H):
     p = next(P)
     q = next(Q)    
     output = { 'header' : {'interval_type' : 'prime_start', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : []} }
-    output[C[0]] = {  m : 0 for m in range(H + 1) }
     data = { C[0] : { m: 0 for m in range(H + 1)} }
     current = { m : 0 for m in range(H + 1) }
     m = 0
