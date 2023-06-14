@@ -223,6 +223,7 @@ HTML(X_anim.to_html5_video())
 <a id='eg3'></a>
 **Example 3.** Let's go through the steps of [Example 2](#eg2), but instead of counting all intervals of the form $(a, a + H]$ as $a$ runs over all integers in the range $(N - M, N + M]$, let's consider only intervals of the form $(p, p + H]$ as $p$ runs over only the _primes_ in the range $(N - M, N + M]$. We have not yet worked through the details of the second-order term in our prediction in this case, but up to first order approximation we should still have $e^{-\lambda}\lambda^m/m!$...
 
+First we generate the data using the ```'prime_start'``` option in our ```intervals``` function.
 ```python
 N = int(np.exp(17))
 HH = [64, 68, 72, 76, 80]
@@ -232,12 +233,16 @@ for H in HH:
     PSEXP17[H] = pii.intervals(C, H, 'prime_start')
 ```
 
+Let's centre the intervals around $N$ with the ```nest``` function.
+
 ```python
 PSEXP17NEST = {}
 for H in HH:
     PSEXP17NEST[H] = pii.nest(PSEXP17[H])
     pii.analyze(PSEXP17NEST[H])
 ```
+
+Let's have a look at the data in a table.
 
 ```python
 PSEXP17_76_NESTtable = pii.display(PSEXP17NEST[76])
@@ -247,6 +252,8 @@ pii.dfi.export(PSEXP17_76_NESTtable.tail(5), 'PSEXP17_76_NESTtable.png')
 
 ![SegmentLocal](images/examples/PSEXP17_76_NESTtable.png)
 
+Although our predictions have only been worked out for the case of overlapping intervals, and the secondary term in the case of disjoint/left-endpoint-prime intervals might well be a bit different, we can nevertheless compare the data to these "predictions"...
+
 ```python
 pii.compare(PSEXP17NEST[76])
 PSEXP17_76_NESTcompare = pii.display(PSEXP17NEST[76], comparisons='absolute').tail(5)
@@ -255,12 +262,16 @@ pii.dfi.export(PSEXP17_76_NESTcompare, 'PSEXP17_76_NESTcompare_tail.png')
 
 ![SegmentLocal](images/examples/PSEXP17_76_NESTcompare_tail.png)
 
+...and see which not-really-a-prediction fares best...
+
 ```python
 pii.winners(PSEXP17NEST[76])
 PSEXP17_76_NESTwinners = pii.display(PSEXP17NEST[76], winners='show')
 pii.dfi.export(PSEXP17_76_NESTwinners, 'PSEXP17_76_NESTwinners_tail10.png')
 ```
 ![SegmentLocal](images/examples/PSEXP17_76_NESTwinners_tail10.png)
+
+And now we can grok everything with an animation...
 
 ```python
 # HH = [64, 68, 72, 76, 80]
@@ -368,6 +379,7 @@ plt.show()
 HTML(X_anim.to_html5_video())
 ```
 <a id='eg3plot'></a> 
+
 ![SegmentLocal](images/examples/PSEXP17_76_NESTanim.gif)
 
 
