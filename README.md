@@ -1,5 +1,7 @@
 ## Biases in the distribution of primes in intervals
 
+See [here](#https://github.com/tmfreiberg/primes_in_intervals/blob/main/examples.md) for more examples.
+
 <a id='tldr'></a>
 ### TL;DR
 <sup>Jump to: ↓↓ [Contents](#contents) | ↓ [Introduction](#introduction) </sup>
@@ -4401,14 +4403,14 @@ plt.rcParams['savefig.facecolor'] = 'white'
 plot(C[-1])
 plt.show()
 ```
-![SegmentLocal](images/README/N_exp21_H_60.png)
-
 ```python
 # Save a video of the animation.
 from IPython.display import HTML
 
 HTML(X_anim.to_html5_video())
 ```
+
+![SegmentLocal](images/README/N_exp21_H_60.gif)
 
 <a id='extensions'></a>
 ### Extensions
