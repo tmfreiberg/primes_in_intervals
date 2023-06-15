@@ -233,12 +233,12 @@ def anyIntervals(M,N,H,generator1,generator2):
     b = next(B)
     while a <= M:
         a = next(A)
-    while b <= a:
-            b = next(B)
     output = { m : 0 for m in range(H + 1) }
     m = 0
     Blist = []
-    while a <= N:        
+    while a <= N:    
+        while b <= a:
+            b = next(B)
         while b <= a + H:
             m += 1
             Blist.append(b)
@@ -252,7 +252,6 @@ def anyIntervals(M,N,H,generator1,generator2):
                 Blist.pop(0)
     output = { m : output[m] for m in range(H + 1) if output[m] != 0}
     return output
-
 # SAVE
 
 # We have a database called primes_in_intervals_db.
