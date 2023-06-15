@@ -226,7 +226,7 @@ def intervals(C,H,interval_type='overlap'):
 
 # This is the core function. We need to make a "checkpoint" version and update all the related functions (display, etc.).
 
-def anyIntervalsPrint(M,N,H,generator1,generator2):
+def anyIntervals(M,N,H,generator1,generator2):
     A = generator1
     B = generator2
     a = next(A)
