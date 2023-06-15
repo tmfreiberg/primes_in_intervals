@@ -2,7 +2,7 @@
 import primes_in_intervals as pii
 ```
 
-<sup>Jump to: ↓ [Example 2](#eg2) | ↓↓ [Example 3](#eg3) </sup>
+<sup>Jump to: ↓ [Example 2](#eg2) | ↓↓ [Example 3](#eg3) | ↓↓ [Example 4](#eg4) </sup>
 
 <a id='eg1'></a>
 **Example 1.** Tables from Gauss's _Nachlass_. Create data for primes in disjoint intervals of length $100$ (starting at multiples of $100$), up to $10^7$. Checkpoints every $10^5$.
@@ -36,7 +36,7 @@ Here's the original: Gauss/Goldschmidt were only short by $21$ primes in the end
 
 ![SegmentLocal](images/examples/nachlass.jpg)
 
-<sup>Jump to: ↑ [Example 1](#eg1) | ↓ [Example 3](#eg3) | ↓ [Plot](#eg2plot) </sup>
+<sup>Jump to: ↑ [Example 1](#eg1) | ↓ [Plot](#eg2plot) | ↓ [Example 3](#eg3) | ↓↓ [Example 4](#eg4) </sup>
 
 <a id='eg2'></a>
 **Example 2.** Let's look at a series of nested intervals centred around $N = [e^{17}] = 24,154,952$. We take the density of primes close to $N$ as $1/(\log N - 1)$, which is $1/15.999999968802452\ldots$, virtually $1/16$. We'll get data for intervals of length $64, 68, 72, 76, 80$. 
@@ -218,7 +218,7 @@ HTML(X_anim.to_html5_video())
 <a id='eg2plot'></a>
 ![SegmentLocal](images/examples/EXP17_76_NESTanim.gif)
 
-<sup>Jump to: ↑↑ [Example 1](#eg1) | ↑ [Example 2](#eg2) | ↓ [Plot](#(#eg3plot)) </sup>
+<sup>Jump to: ↑↑ [Example 1](#eg1) | ↓ [Plot](#(#eg3plot)) | ↑ [Example 2](#eg2) | ↓ [Example 4](#eg4) </sup>
 
 <a id='eg3'></a>
 **Example 3.** Let's go through the steps of [Example 2](#eg2), but instead of counting all intervals of the form $(a, a + H]$ as $a$ runs over all integers in the range $(N - M, N + M]$, let's consider only intervals of the form $(p, p + H]$ as $p$ runs over only the _primes_ in the range $(N - M, N + M]$. We have not yet worked through the details of the second-order term in our prediction in this case, but up to first order approximation we should still have $e^{-\lambda}\lambda^m/m!$...
@@ -382,7 +382,36 @@ HTML(X_anim.to_html5_video())
 
 ![SegmentLocal](images/examples/PSEXP17_76_NESTanim.gif)
 
+<sup>Jump to: ↑↑ [Example 1](#eg1) | ↑↑ [Example 2](#eg2) | | ↑ [Example 3](#eg3) </sup>
 
+<a id='eg4'></a>
+**Example 4.** We use $\lambda = H/(\log N - 1)$ in our prediction $F(H,m,\lambda)$ because the density of primes close to $N$ is approximately $1/(\log N - 1)$, by the prime number theorem. Actually, the prime number theorem says that the number of primes up to $N$ is well-approximated by 
+
+$$\int_2^N \frac{dt}{\log t} = \frac{N}{\log N} + \frac{N}{(\log N)^2} + \frac{2N}{(\log N)^3} + \cdots .$$
+
+Thus, the average density of primes up to $N$ is approximated by 
+
+$$\frac{1}{N} \int_2^N \frac{dt}{\log t} = \frac{1}{\log N} + \frac{1}{(\log N)^2} + \frac{2}{(\log N)^3} + \cdots .$$
+
+(Indeed, Gauss's observation from his numerical data was that the density of primes around $n$ is around $1/\log n$, so that the number of primes around $N$ may be estimated by integrating over this density.) Notice that 
+
+$$\frac{1}{\log N - 1} = \frac{1}{\log N} + \frac{1}{(\log N)^2} + \frac{1}{(\log N)^3} + \cdots, $$
+
+and so $1/(\log N - 1)$ is a good proxy for what the prime number theorem gives us: more precisely, 
+
+$$\frac{1}{N} \int_2^N \frac{dt}{\log t} = \frac{1}{\log N - 1} + O\left(\frac{1}{(\log N)^3}\right).$$
+
+In fact, the details leading to our prediction $F(H,m,\lambda)$ are unaffected if, instead of letting $\lambda = H/(\log N - 1)$, we let $\lambda = H/(\log N - 1 + \epsilon(N))$, where $\epsilon(N) \to 0$ rapidly enough. (This is also related to the reason why, if we let $\lambda^\* = H/\log N$, which only approximates what we get from the logarithmic intgral up to an error of $O(1/(\log N)^2$, we get a different form for our prediction, which we are calling $F^\*(H,m,\lambda^\*)$.) That is, we can use better approximations than $1/(\log N - 1)$ to the density of primes close to $N$, but this does not affect the form of our prediction $F(H,m,\lambda)$, because $\epsilon(N)$ gets absorbed into our error terms. If we could work out or conjecture tertiary and higher order terms in our prediction $F(H,m,\lambda)$, this would become quite relevant and interesting. 
+
+Notwithstanding, we can still play around with $\lambda$ in our numerics. The prime number theorem suggests that if we are considering primes in intervals around $(N - M, N + M]$, we should take the density of primes (or "probability" of a random integer in the interval being prime) as 
+
+$$\frac{1}{2M} \int_{N - M}^{N + M} \frac{dt}{\log t}.$$
+
+Again, letting this be $\lambda/H$ doesn't affect the form of our prediction $F(H,m,\lambda)$, provided $M$ isn't too large in terms of $N$. Below is an animated plot, where we chose $N$ so that the above with $M = 10^6$ is very close to $1/20$.
+
+![SegmentLocal](images/examples/li20_H_100.gif)
+
+What we should really like to do is, instead of fixing $H$ and letting $\lambda = H/(\log N - 1)$ (or whatever), and considering intervals close enough to $N$ that $\lambda$ remains more or less constant, is _fix_ $\lambda$, and let $H = \lambda \log n$ (say), where we are considering intervals of the form $(n, n + H]$. Then we'd have $\lambda/H = 1/\log n$, and this is what the prime number theorem (and Gauss) really say: the density of primes around an integer $n$ is $1/\log n$. Alas, for now, the argument leading to our prediction relies on the fact that $H$ is a fixed integer.
 
 
 
