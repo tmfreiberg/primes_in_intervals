@@ -911,13 +911,13 @@ def anyIntervals(M,N,H,generator1,generator2):
     a = next(A)
     b = next(B)
     while a <= M:
-        a = next(A)
-    while b <= a:
-            b = next(B)
+        a = next(A)    
     output = { m : 0 for m in range(H + 1) }
     m = 0
     Blist = []
-    while a <= N:        
+    while a <= N:   
+	while b <= a:
+            b = next(B)	    
         while b <= a + H:
             m += 1
             Blist.append(b)
@@ -948,7 +948,7 @@ end2 = timer()
 end1 - start1, end2 - start2
 ```
 ```
-(3.037539799930528, 1.8025022000074387)
+(2.5513191999998526, 1.858088900000439)
 ```
 The greater generality costs us a little bit extra in time. (We also have to store a list whose length is at most $H$.) Let's check our results for consistency.
 
@@ -958,6 +958,30 @@ nachlass_general_way == nachlass_specific_way['data'][3000000]
 ```
 True
 
+```
+
+What about disjoint intervals? That's just considering $(a, a + H]$ where $a$ is in an arithmetic progression $\bmod H$. ```count(b,n)``` from ```itertools``` gives us the arithmetic progression $b \bmod n$.
+
+```python
+from timeit import default_timer as timer
+start1 = timer()
+nachlass_general_way = anyIntervals(2*10**6-1, 3*10**6-100,100, count(0,100), postponed_sieve())
+end1 = timer()
+
+start2 = timer()
+nachlass_specific_way = pii.disjoint_cp([2*10**6, 3*10**6],100)
+end2 = timer()
+
+end1 - start1, end2 - start2
+```
+```
+(0.902533600004972, 0.9400128999986919)
+```
+```python
+nachlass_general_way == nachlass_specific_way['data'][3000000]
+```
+```
+True
 ```
 
 Let's see the ```anyIntervals``` function applied to intervals whose left endpoints are all prime. For purposes of demonstration, let's add two lines to the code so that we see a print out at each key step.
@@ -970,12 +994,12 @@ def anyIntervalsPrint(M,N,H,generator1,generator2):
     b = next(B)
     while a <= M:
         a = next(A)
-    while b <= a:
-            b = next(B)
     output = { m : 0 for m in range(H + 1) }
     m = 0
     Blist = []
-    while a <= N:        
+    while a <= N:  
+	while b <= a:
+            b = next(B)	    
         while b <= a + H:
             m += 1
             Blist.append(b)
@@ -997,15 +1021,11 @@ anyIntervalsPrint(10,31,10,postponed_sieve(),postponed_sieve())
 ```
 ```
 11 < [13, 17, 19] <= 21, 3 : 1
-['x', 17, 19, 23]
 13 < [17, 19, 23] <= 23, 3 : 2
-['x', 19, 23]
 17 < [19, 23] <= 27, 2 : 1
-['x', 23, 29]
 19 < [23, 29] <= 29, 2 : 2
 23 < [29, 31] <= 33, 2 : 3
 29 < [31, 37] <= 39, 2 : 4
-['x', 37, 41]
 31 < [37, 41] <= 41, 2 : 5
 {2: 5, 3: 2}
 ```
