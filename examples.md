@@ -407,7 +407,7 @@ Notwithstanding, we can still play around with $\lambda$ in our numerics. The pr
 
 $$\frac{1}{2M} \int_{N - M}^{N + M} \frac{dt}{\log t}.$$
 
-Again, letting this be $\lambda/H$ doesn't affect the form of our prediction $F(H,m,\lambda)$, provided $M$ isn't too large in terms of $N$. Below is an animated plot, where we chose $N$ so that the above with $M = 10^6$ is very close to $1/20$.
+Again, letting this be $\lambda/H$ doesn't affect the form of our prediction $F(H,m,\lambda)$. Below is an animated plot, where we chose $N$ so that the above with $M = 10^6$ is very close to $1/20$.
 
 ![SegmentLocal](images/examples/li20_H_100.gif)
 
