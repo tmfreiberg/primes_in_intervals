@@ -912,34 +912,23 @@ def anyIntervals(M,N,H,generator1,generator2):
     b = next(B)
     while a <= M:
         a = next(A)
+    while b <= a:
+            b = next(B)
     output = { m : 0 for m in range(H + 1) }
     m = 0
     Blist = []
-    while a <= N:
-        while b <= a:
-            b = next(B)        
+    while a <= N:        
         while b <= a + H:
-	    if a in Blist:
-	    	m += -1
-                Blist.pop(0)
             m += 1
             Blist.append(b)
             b = next(B)
         output[m] += 1
         a = next(A)
-        while a + H <= min(b, N + H):     
-            if a + H == b:  
-                m += 1
-                Blist.append(b)
-                b = next(B)
-            for i in range(len(Blist)):
-                if Blist[i] <= a:
-                    m += -1 
-                    Blist[i] = 'x'
-            while 'x' in Blist:
-                Blist.remove('x')
-            output[m] += 1   
-            a = next(A)
+        temp_m = m
+        for i in range(temp_m):
+            if Blist[0] <= a: 
+                m += -1
+                Blist.pop(0)
     output = { m : output[m] for m in range(H + 1) if output[m] != 0}
     return output
 ```
@@ -981,37 +970,24 @@ def anyIntervalsPrint(M,N,H,generator1,generator2):
     b = next(B)
     while a <= M:
         a = next(A)
+    while b <= a:
+            b = next(B)
     output = { m : 0 for m in range(H + 1) }
     m = 0
     Blist = []
-    while a <= N:
-        while b <= a:
-            b = next(B)        
+    while a <= N:        
         while b <= a + H:
-	    if a in Blist:
-	        m += -1
-                Blist.pop(0)
             m += 1
             Blist.append(b)
             b = next(B)
         output[m] += 1
 	print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
         a = next(A)
-        while a + H <= min(b, N + H):     
-            if a + H == b:  
-                m += 1
-                Blist.append(b)
-                b = next(B)
-            for i in range(len(Blist)):
-                if Blist[i] <= a:
-                    m += -1 
-                    Blist[i] = 'x'
-		    print(f'{Blist}')
-            while 'x' in Blist:
-                Blist.remove('x')
-            output[m] += 1   
-            print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
-            a = next(A)
+        temp_m = m
+        for i in range(temp_m):
+            if Blist[0] <= a: 
+                m += -1
+                Blist.pop(0)
     output = { m : output[m] for m in range(H + 1) if output[m] != 0}
     return output
 ```
