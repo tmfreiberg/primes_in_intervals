@@ -224,7 +224,7 @@ def intervals(C,H,interval_type='overlap'):
     
 # ANY INTERVALS: A MORE GENERAL (BUT SLOWER) FUNCTION
 
-# This is the core function. We need to make a "checkpoint" version and update all the related functions (display, etc.).
+# This is the core function. 
 
 def anyIntervals(M,N,H,generator1,generator2):
     A = generator1
@@ -252,6 +252,45 @@ def anyIntervals(M,N,H,generator1,generator2):
                 Blist.pop(0)
     output = { m : output[m] for m in range(H + 1) if output[m] != 0}
     return output
+
+# The "checkpoint" version. 
+# We haven't yet updated all the other functions (save, retrieve, analyze, compare, display, etc.) to take anyIntervals functions into account.
+# We'd need to think about how to label the data generated, since generator1 and generator2 could be anything.
+
+def anyIntervals_cp(C,H,generator1,generator2):
+    C.sort()
+    A = generator1
+    B = generator2
+    a = next(A)
+    b = next(B)
+    data = { C[0] : {m : 0 for m in range(H + 1)} }
+    current = { m : 0 for m in range(H + 1) }
+    m = 0
+    Blist = []
+    for i in range(1,len(C)):
+        M, N = C[i - 1], C[i]
+        while a <= M:
+            a = next(A)
+        while a <= N:    
+            while b <= a:
+                b = next(B)
+            while b <= a + H:
+                m += 1
+                Blist.append(b)
+                b = next(B)
+            current[m] += 1
+            a = next(A)
+            temp_m = m
+            for i in range(temp_m):
+                if Blist[0] <= a: 
+                    m += -1
+                    Blist.pop(0)
+        data[N] = {}
+        for k in range(H + 1):
+            data[N][k] = current[k]
+    trimmed_data = zeros(data) 
+    return trimmed_data
+
 # SAVE
 
 # We have a database called primes_in_intervals_db.
