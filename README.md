@@ -965,7 +965,7 @@ What about disjoint intervals? That's just considering $(a, a + H]$ where $a$ is
 ```python
 from timeit import default_timer as timer
 start1 = timer()
-nachlass_general_way = anyIntervals(2*10**6-1, 3*10**6-100,100, count(0,100), postponed_sieve())
+nachlass_general_way = anyIntervals(2*10**6-100, 3*10**6-100,100, count(0,100), postponed_sieve())
 end1 = timer()
 
 start2 = timer()
@@ -983,6 +983,8 @@ nachlass_general_way == nachlass_specific_way['data'][3000000]
 ```
 True
 ```
+
+Notice that the input was ```anyIntervals(2*10**6-100, 3*10**6-100,100, count(0,100), postponed_sieve())```, i.e. we subtracted $H = 100$ from the lower and upper bounds. This is because ```anyIntervals(M,N,H, count(0,H), postponed_sieve())``` gives us data on intervals $(a, a + 100]$ for $M < a \le N$ with $a \equiv 0 \bmod H$. If we'd put $M = 2\cdot 10^6$ and $N = 3\cdot 10^6$ into the function, it would have returned data for $(a, a + 100]$ for $a = 2\cdot 10^6 + 100,2\cdot 10^6 + 200,\ldots,3\cdot 10^6$, where as the ```disjoint_cp``` function gives us data for $a = 2\cdot 10^6,2\cdot 10^6 + 100,\ldots,3\cdot 10^6 - 100$.
 
 Let's see the ```anyIntervals``` function applied to intervals whose left endpoints are all prime. For purposes of demonstration, let's add two lines to the code so that we see a print out at each key step.
 
