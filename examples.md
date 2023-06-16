@@ -411,7 +411,7 @@ Again, letting this be $\lambda/H$ doesn't affect the form of our prediction $F(
 
 ![SegmentLocal](images/examples/li20_H_100.gif)
 
-What we should really like to do is, instead of fixing $H$ and letting $\lambda = H/(\log N - 1)$ (or whatever), and considering intervals close enough to $N$ that $\lambda$ remains more or less constant, is _fix_ $\lambda$, and let $H = \lambda \log n$ (say), where we are considering intervals of the form $(n, n + H]$. Then we'd have $\lambda/H = 1/\log n$, and this is what the prime number theorem (and Gauss) really say: the density of primes around an integer $n$ is $1/\log n$. Alas, for now, the argument leading to our prediction relies on the fact that $H$ is a fixed integer.
+What we should really like to do is, instead of fixing $H$ and letting $\lambda = H/(\log N - 1)$ (or whatever), and considering intervals close enough to $N$ that $\lambda$ remains more or less constant, is _fix_ $\lambda$, and let $H = \lambda \log n$ (say), where we are considering intervals of the form $(n, n + H]$. Then we'd have $\lambda/H = 1/\log n$, and this is what the prime number theorem (and Gauss) really say: the density of primes around an integer $n$ is $1/\log n$. Alas, for now, the argument leading to our prediction relies on the fact that $H$ is a fixed integer of size of order $\log N$.
 
 
 
