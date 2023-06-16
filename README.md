@@ -1,6 +1,6 @@
 ## Biases in the distribution of primes in intervals
 
-See [examples.md](#https://github.com/tmfreiberg/primes_in_intervals/blob/main/examples.md) for more examples.
+See [examples.md](https://github.com/tmfreiberg/primes_in_intervals/blob/main/examples.md) for more examples.
 
 <a id='tldr'></a>
 ### TL;DR
@@ -90,7 +90,7 @@ where $\lambda > 0$ and $m \ge 0$ are fixed, and where $H = \lambda \log N$. Thi
 
 The result about the singular series, and the deduction of the conditional Poisson distribution for primes in short intervals, is due to Gallagher [[2]](#references), who used the method of moments. In [[1]](#references) we prove a generalization of this conditional result, using not the method of moments, but an inclusion-exclusion argument, that allows us to directly insert the sum over the singular series into the estimation of the probability mass function. Thus, we are able to make use of more precise estimates for the singular series average, such as the one due to Montgomery and Soundararajan [[3]](#references), leading to more precise predictions with secondary terms (although we need to make further conjectures about the uniformity of the estimate of Montgomery and Soundararajan, or perhaps establish some unconditional results involving further averaging).
 
-The resulting predictions for the distribution of primes in short intervals, agree with that of Cramér's model (and the conditional result of Gallagher) as first-order approximations, but deviate at the second-order term, and appear to better fit the numerical data. The purpose of the code below is to generate data for primes in intervals, compare it to theoretical predictions, and visualize the results in tables and plots.
+The resulting predictions for the distribution of primes in short intervals, agree with that of Cramér's model (and the conditional result of Gallagher) as first-order approximations, but deviate at the second-order term, and appear to better fit the numerical data, where it seems the expected number of primes in an interval is much more popular of a value than is suggested by Cramér's model. The purpose of the code below is to generate data for primes in intervals, compare it to theoretical predictions, and visualize the results in tables and plots.
 
 <a id='contents'></a>
 ### Contents
