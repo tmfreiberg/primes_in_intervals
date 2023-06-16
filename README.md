@@ -12,9 +12,9 @@ As suggested in [[1]](#references), our prediction is based on the Hardy-Littlew
 
 ![SegmentLocal](images/README/N_exp21_H_60.gif)
 
-The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ being the "probability" that an integer close to $N$ is prime (and we assume $\lambda \asymp 1$),
+The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ being the "probability" that an integer close to $N$ is prime (and we assume $\lambda \asymp 1$), is the Binomial distribution $$\mathrm{Binom}(H,\lambda/H)$$, whose probability mass function is given by
 
-$$\mathrm{Binom}(H,\lambda/H) =  \frac{e^{-\lambda}\lambda^m}{m!}\bigg[1 + \frac{Q_1(\lambda,m)}{H} + \frac{Q_2(\lambda,m)}{H^2} + \cdots\bigg],$$
+$$f(m; H,\lambda/H) = \binom{H}{m}\left(\frac{\lambda}{H}\right)^m\left(1 - \frac{\lambda}{H}\right)^{H - m} =  \frac{e^{-\lambda}\lambda^m}{m!}\bigg[1 + \frac{Q_1(\lambda,m)}{H} + \frac{Q_2(\lambda,m)}{H^2} + \cdots\bigg],$$
 where each $Q_j(\lambda,m)$ is a polynomial in $\lambda$ and $m$, and in particular, 
 
 $$Q_1(\lambda,m) = \frac{m - (m - \lambda)^2}{2}.$$
@@ -23,7 +23,7 @@ Our prediction (green) is
 
 $$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{Q_1(\lambda,m)}{H}\left(\log H + (\log 2\pi + \gamma - 1)\right) \right],$$
 
-in agreement with Cramér's model only as a first-order approximation. The secondary term in our prediction is more in line with our observation that the distribution of the numerical data is more "pinched up" around the center: there is more of a _bias_ towards the mean $\lambda$ than is suggested by the Binomial distribution.
+in agreement with Cramér's model only as a first-order approximation. The secondary term in our prediction is more in line with our observation that the distribution of the numerical data is more "pinched up" around the center: there is more of a _bias_ towards the mean $\lambda$ than is suggested by the Binomial distribution. (Note that $F(H,m,\lambda)$ is not a probability mass function as its sum over $m$ is only close to $1$, but not equal to $1$. Whether one can find modifications to the higher order terms in the expansion of $f(m; H,\lambda/H)$, that lead to even better predictions for the distribution of primes in intervals, is certainly a tantalizing question, worth pursuing.)
 
 <a id='introduction'></a>
 ### Introduction
@@ -55,7 +55,7 @@ for a continuous count) spent an idle quarter of an hour to count another chilia
 ..........[Disjoint intervals, with checkpoints](#disjoint_checkpoints)<br>
 ..........[Overlapping intervals](#overlapping)<br>
 ..........[Overlapping intervals, with checkpoints](#overlapping_checkpoints)<br>
-..........[Prime-starting intervals, and more general function](#prime_starting)<br>
+..........[Prime-starting intervals, and a more general function](#prime_starting)<br>
 ..........[A single function](#single_function)<br>
 ..........[To do](#to_do)<br>
 [Raw data](#raw_data)<br> .......... [Example 1](#eg1generate) | [Example 2](#eg2generate)<br>
@@ -2589,7 +2589,7 @@ $$F^\*(H,m,\lambda^\*) = \frac{e^{-\lambda^\*}(\lambda^\*)^m}{m!}\left[1 + \frac
 
 We use $F$ with $\lambda = H/(\log N - 1)$ and $F^\*$ with $\lambda^\* = H/\log N$, $\lambda/H$ (or $\lambda^\*/H$) representing the "probability" of an integer very close to $N$ being prime.
 
-We're comparing these against the prediction based on $$\mathrm{Binom}(H, \lambda/H)$$.
+We're comparing these against the prediction based on $$\mathrm{Binom}(H,\lambda/H)$$.
 
 NB: $F$ and $F^\*$ apply to the case of overlapping intervals only at this point. The details of the case of disjoint intervals and prime-starting intervals have not been worked out yet, and it may well be that different second-order terms arise in the disjoint/prime-starting case. Therefore, in the case of disjoint/prime-starting intervals, comparisons with estimates arising from $F$ and $F^\*$ should be taken with a grain of salt.
 
