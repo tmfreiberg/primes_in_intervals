@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "primes-in-intervals"
+version = "1.0.0"
+description = "Counting primes in intervals: computation, SQLite storage, statistics, predictions, and animations"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Tristan Freiberg" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "sympy",
+    "matplotlib",
+    # pandas needs jinja2 for the .style accessor, which display() and
+    # show_table() use whenever a caption is attached (their default).
+    "jinja2",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+tables = ["dataframe_image"]
+dev = ["pytest", "ruff", "mypy"]
+
+[project.scripts]
+primes-in-intervals = "primes_in_intervals.cli:main"
+pii = "primes_in_intervals.cli:main"
+
+[project.urls]
+Repository = "https://github.com/tmfreiberg/primes_in_intervals"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# The original 2023 script is kept at the repository root so the validation
+# harnesses can compare against it; it is a historical record, not part of
+# the package, so it is not linted.  (The pattern matches the file only: the
+# package is the directory src/primes_in_intervals/.)
+extend-exclude = ["primes_in_intervals.py", "original"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "D"]
+ignore = [
+    "D203",  # incompatible with D211
+    "D213",  # incompatible with D212
+    "E741",  # ambiguous variable names: mathematical notation (l, I) is deliberate
+]
+# The mathematical naming conventions (C, H, M, N, A, B, P, Q, ...) and the
+# original camelCase anyIntervals are kept on purpose, so the pep8-naming (N)
+# rules are not enabled.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+# The validation harnesses stub modules before importing (E402), transcribe
+# the original scripts verbatim (E501, F841), and are one-off tools (D1xx).
+"validation/*" = ["D100", "D103", "E402", "E501", "F841"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["scipy.*", "sympy.*", "matplotlib.*", "pandas.*", "dataframe_image.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # The plotting tests build animations and discard them without saving,
+    # which is the behavior under test; Matplotlib warns about this when the
+    # object is garbage-collected, at an arbitrary later point in the run.
+    "ignore:Animation was deleted without rendering anything:UserWarning",
+]

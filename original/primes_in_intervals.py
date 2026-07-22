@@ -4,21 +4,16 @@
 
 # LIBRARIES/PACKAGES/MODULES
 
-from itertools import count                     # used in the postponed_sieve prime generator
-import sqlite3                                  # to save and retrieve data from a database
-import pandas as pd                             # to display tables of data
-import dataframe_image as dfi                   # to save images of dataframes
-from timeit import default_timer as timer       # to see how long certain computations take
-import numpy as np                              # for square-roots, exponentials, logs, etc.
-from scipy.special import binom as binom        # binom(x,y) = Gamma(x + 1)/[Gamma(y + 1)Gamma(x - y + 1)]
-from scipy.special import gamma as gamma        # Gamma function
+import sqlite3  # to save and retrieve data from a database
+from itertools import count  # used in the postponed_sieve prime generator
+
+import numpy as np  # for square-roots, exponentials, logs, etc.
+import pandas as pd  # to display tables of data
+
 # from scipy.stats import norm                   # don't need this at present
-import sympy                                    # for the Euler-Mascheroni constant, EulerGamma, in the constant 1 - gamma - log(2*pi) from Montgomery-Soundararajan
-import matplotlib.pyplot as plt                 # for plotting distributions
-from matplotlib import animation                # for animating sequences of plots
-from matplotlib import rc                       # to help with the animation
-from IPython.display import HTML                # to save animations
-from matplotlib.animation import PillowWriter   # to save animations as a gif
+import sympy  # for the Euler-Mascheroni constant, EulerGamma, in the constant 1 - gamma - log(2*pi) from Montgomery-Soundararajan
+from scipy.special import binom as binom  # binom(x,y) = Gamma(x + 1)/[Gamma(y + 1)Gamma(x - y + 1)]
+from scipy.special import gamma as gamma  # Gamma function
 
 # PRIME GENERATOR
 
@@ -27,7 +22,7 @@ from matplotlib.animation import PillowWriter   # to save animations as a gif
 
                                          # ideone.com/aVndFM
 def postponed_sieve():                   # postponed sieve, by Will Ness      
-    yield 2; yield 3; yield 5; yield 7;  # original code David Eppstein, 
+    yield 2; yield 3; yield 5; yield 7  # original code David Eppstein, 
     sieve = {}                           #   Alex Martelli, ActiveState Recipe 2002
     ps = postponed_sieve()               # a separate base Primes Supply:
     p = next(ps) and next(ps)            # (3) a Prime to add to dict
