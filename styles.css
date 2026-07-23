@@ -1,0 +1,9 @@
+/* Matplotlib figures are drawn on a 22x11 inch canvas, so Quarto emits them
+   with explicit pixel width and height attributes that overflow the text
+   column. Let them scale down to the available width instead. */
+img.figure-img,
+.quarto-figure img,
+.cell-output-display img {
+  max-width: 100%;
+  height: auto;
+}

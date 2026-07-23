@@ -1,0 +1,448 @@
+# Datasets {#sec-raw_data}
+
+Now let's generate some actual data to work with.
+
+This chapter introduces the two running examples used throughout the rest of the book, and the operations a dataset supports once it exists: saving to and retrieving from a database, narrowing to a sub-range, partitioning into per-checkpoint counts, and reorganizing into nested intervals. The functions live in `src/primes_in_intervals/dataio.py` (storage) and `src/primes_in_intervals/transforms.py` (the rest); each is also a shell command (`pii save`, `pii retrieve`, `pii extract`, `pii partition`, `pii nest`; see `docs/cli.md`).
+
+```{python}
+import numpy as np
+
+from primes_in_intervals import (
+    disjoint,
+    extract,
+    intervals,
+    nest,
+    overlap,
+    partition,
+    retrieve,
+    save,
+    show_table,
+    unpartition,
+)
+```
+
+`retrieve` returns a single dataset when exactly one matches the interval length asked for, and a list when several do. The helper below accepts either shape and selects a dataset by its lower bound, so that the cells in this chapter do not depend on how many datasets happen to share an interval length, nor on the order in which they come back.
+
+```{python}
+def pick(found, lower_bound):
+    """Return the retrieved dataset whose data begins at the given lower bound.
+
+    Parameters
+    ----------
+    found : dict or list of dict
+        The return value of ``retrieve``: one dataset, or several.
+    lower_bound : int
+        The ``'lower_bound'`` recorded in the wanted dataset's header.
+
+    Returns
+    -------
+    dict
+        The matching dataset.
+    """
+    if isinstance(found, dict):
+        found = [found]
+    return next(d for d in found if d['header']['lower_bound'] == lower_bound)
+```
+
+### Example 1 {#sec-eg1generate}
+
+```{python}
+A1 = 2*10**6  # lower bound
+B1 = 3*10**6  # upper bound
+H1 = 100  # interval length
+step1 = 10**4  # increments for checkpoints
+C1 = list(range(A1,B1 + 1,step1))  # checkpoints
+```
+
+```{python}
+# Let's see how long some computations take as well
+from timeit import default_timer as timer
+start = timer()
+disjoint(C1[0], C1[-1],H1)
+end = timer()
+end - start
+```
+
+```{python}
+start = timer()
+data1disj = intervals(C1,H1,'disjoint')  # same as disjoint_cp(C1,H1)
+end = timer()
+end - start
+# 0.8928492000559345, not much longer than without "checkpoints".
+```
+
+```{python}
+start = timer()
+overlap(C1[0],C1[-1],H1)
+end = timer()
+end - start
+# 1.9600014999741688 about double the time required for the disjoint version
+```
+
+```{python}
+start = timer()
+data1olap = intervals(C1,H1,'overlap')  # same as overlap_cp(C1,H1)
+end = timer()
+end - start
+# 1.9077042000135407, about the same as the non-checkpoint version, and about double the disjoint analog
+```
+
+### Example 2 {#sec-eg2generate}
+
+```{python}
+# Let's look at numbers that are a bit larger
+N2 = int(np.exp(18))
+H2 = 85
+step2 = 12*H2  # = 1020 (increments for checkpoints)
+M2 = 100*step2  # = 1200*H2 = 102,000
+A2 = N2 - M2  # lower bound
+B2 = N2 + M2  # upper bound
+C2 = list(range(A2, B2 + 1, step2))  # checkpoints. Note that these do not have to be at regular intervals.
+```
+
+The two computations below took twenty and forty seconds respectively when they were first run, so they are displayed but not executed here. Their results were saved to the database once (in the next section), and everything from that point on retrieves them.
+
+```{python}
+#| eval: false
+start = timer()
+data2disj = intervals(C2,H2,'disjoint')  # same as disjoint_cp(C2,H2)
+end = timer()
+end - start
+```
+
+```
+20.59070379997138
+```
+
+```{python}
+#| eval: false
+start = timer()
+data2olap = intervals(C2,H2,'overlap')  # same as overlap_cp(C2,H2)
+end = timer()
+end - start
+# 40.94606200000271, twice as long as 'disjoint' analog, as expected
+```
+
+```
+40.94606200000271
+```
+
+## Saving to the database {#sec-save}
+
+We won't want to re-do a computation that takes a lot of time and memory, so we store our data in a database for future use.
+
+The database is a SQLite file, `data/primes_in_intervals_db`, with one table per interval type: `disjoint_raw`, `overlap_raw`, and `prime_start_raw`. Each table has the same shape. The first column is $A$ (lower bound), the second $B$ (upper bound), and the third $H$ (interval length), where we consider intervals of the form $(a, a + H]$ for $a$ in $(A, B]$; these three columns constitute the table's primary key. The next `max_primes + 1` columns, `m0` through `m100`, contain the number of such intervals with $m$ primes, where `max_primes = 100` will easily cover any situation we will be interested in. So $A$, $B$, $H$, `m0`, `m1`, ..., `m100` are columns $0, 1, 2, 3, \ldots, 103$ respectively: `mi` is column $i + 3$.
+
+The tables are created by `ensure_tables` in `src/primes_in_intervals/dataio.py`, whose core is:
+
+```python
+max_primes = 100  # can change this and alter tables in future if need be
+
+# Generate the string 'm0 int, m1 int, m2 int, ... '
+cols = ''
+for i in range(max_primes + 1):
+    cols = cols + 'm' + f'{i}' + ' int, '
+
+conn = sqlite3.connect('data/primes_in_intervals_db')
+conn.execute(
+    'CREATE TABLE IF NOT EXISTS disjoint_raw '
+    '(lower_bound int, upper_bound int, interval_length int, '
+    + cols + 'PRIMARY KEY(lower_bound, upper_bound, interval_length))'
+)
+# ...and the same for overlap_raw and prime_start_raw.
+```
+
+In case we mess up and need to start again:
+
+```python
+# BE CAREFUL if the table contains data from a calculation that took a long time.
+# conn = sqlite3.connect('data/primes_in_intervals_db')
+# conn.execute('DROP TABLE IF EXISTS disjoint_raw')
+# conn.execute('DROP TABLE IF EXISTS overlap_raw')
+# conn.execute('DROP TABLE IF EXISTS prime_start_raw')
+# conn.close()
+```
+
+The `save` function (in `src/primes_in_intervals/dataio.py`) stores a dataset in the table matching its `interval_type`. For each checkpoint `C[k]` beyond the first, it inserts one row of the form `C[0], C[k], H, g(0), g(1), ..., g(max_primes)`, padding with zeros the values of $m$ that the dataset does not mention. The insertion is `INSERT OR IGNORE`, so a row whose `(lower_bound, upper_bound, interval_length)` key already exists is left alone: saving the same dataset twice is harmless, and the cells below can be re-run freely.
+
+### Example 1 {#sec-eg1save}
+
+```{python}
+save(data1disj)
+save(data1olap)
+```
+
+### Example 2 {#sec-eg2save}
+
+The datasets computed above were saved the same way, once:
+
+```{python}
+#| eval: false
+save(data2disj)
+save(data2olap)
+```
+
+## Retrieving from the database {#sec-retrieve}
+
+First, a function that shows an entire table in our database. After this, we'll define a function that takes $H$ as an input and reconstructs the original dictionary(ies) we created that correspond to interval length $H$.
+
+`show_table` (in `src/primes_in_intervals/dataio.py`) selects everything from one table, ordered by lower bound, upper bound, and interval length, and returns it as a DataFrame. By default the DataFrame comes with a caption defining the columns; for disjoint intervals, the caption reads: Column with label $m$ shows $\#\{1 \le k \le (B - A)/H : \pi(A + kH) - \pi(A + (k - 1)H) = m \}$, and analogously for the other two tables. The tables are getting large, so here we show only the first few rows of each, without the caption.
+
+```{python}
+show_table('disjoint', description='no description').head()
+```
+
+```{python}
+show_table('overlap', description='no description').head()  # it's getting large and takes a while to display
+```
+
+The reconstruction function is `retrieve` (in `src/primes_in_intervals/dataio.py`). Recall that the table holds rows of the form `C[0], C[k], H, g(0), g(1), ..., g(max_primes)`. `retrieve(H, interval_type)` selects every row with the given interval length and groups the rows by their lower bound: each distinct lower bound yields one reconstructed dataset, with its header rebuilt, its zero-count columns trimmed away, and the trivial all-zero item restored at the first checkpoint. Several datasets can share an interval length (they will have different lower bounds), so `retrieve` prints a summary of what it found and returns either a single dataset, or a list of datasets to choose from by index.
+
+### Example 1 {#sec-eg1retrieve}
+
+Several overlap datasets share the interval length $H = 100$, so `retrieve` returns a list. We use `pick` to select the one we want by its lower bound, rather than by its position.
+
+```{python}
+start = timer()
+retrieve_data1disj = retrieve(H1,'disjoint')
+retrieve_data1olap = pick(retrieve(H1,'overlap'), A1)
+end = timer()
+end - start
+```
+
+```{python}
+# Check that the retrieved data is the same as the original data
+data1disj == retrieve_data1disj, data1olap == retrieve_data1olap
+```
+
+### Example 2 {#sec-eg2retrieve}
+
+```{python}
+start = timer()
+retrieve_data2disj = retrieve(H2,'disjoint')
+retrieve_data2olap = retrieve(H2,'overlap')
+end = timer()
+end - start
+```
+
+The retrieved datasets equal the ones computed above, exactly as in Example 1; since `data2disj` and `data2olap` are not recomputed at render time, the check itself is shown but not executed.
+
+```{python}
+#| eval: false
+# Check that the retrieved data is the same as the original data
+data2disj == retrieve_data2disj, data2olap == retrieve_data2olap
+```
+
+```
+(True, True)
+```
+
+## Narrowing and filtering {#sec-narrow}
+
+If we have data on primes in intervals of the form $(a, a + H]$ for $A < a \le B$, and we wish to instead work with data for the more restricted range $C < a \le D$ where $A \le C < D \le B$, we can obtain the corresponding data if $C$ and $D$ are "checkpoints". We use the ```extract``` function (in `src/primes_in_intervals/transforms.py`). It's simply a matter of noting that, e.g., if $100$ intervals with $a$ in the range $(A, D]$ contain $5$ primes, while $60$ of them correspond to $a$ in $(A,C]$, then $100 - 60 = 40$ of them are with $a$ in $(C, D]$.
+
+More generally, we might wish to restrict (or "filter") our sequence ```C``` of checkpoints to a subsequence ```D```. We might especially want to do this if we have retrieved some data from our database, as in the following example. Suppose ```H = 100```, ```C1 = [100,200,300,400,500]```, and ```C2 = [100,160,220,280,340]```. We apply ```intervals(C1,H)```, then save the resulting data to our database, then do the same for ```intervals(C2,H)```. We later apply ```retrieve(100)```. We will end up with the equivalent of ```intervals(C,H)```, where ```C = [100,160,200,220,280,300,340,400,500]```. If we look at the terms of ```C``` we would probably realize that our original intention was to have checkpoints at multiples of ```100``` in one dataset, and checkpoints at ```100``` plus multiples of ```60``` in another. We could then split ```C``` up into ```C1``` and ```C2```. We'd then apply the ```extract``` function.
+
+`extract(meta_dictionary, newC, option)` returns a new dataset and leaves the input untouched. With `option='narrow'`, `newC` should be of the form `[A,B]`, where $(A, B]$ is the desired range: the checkpoints falling in that range are kept, and every count is re-based by subtracting the count at the new lower bound, exactly as in the observation above. With the default `option='filter'`, `newC` is the list of checkpoints to keep, and only those that coincide with existing checkpoints survive. If $A$ and $B$ are already checkpoints, then both options do the same thing. Either way, at least two checkpoints must remain, and the guards report anything unusable.
+
+### Example 1 {#sec-eg1narrow}
+
+```{python}
+narrow_data1disj = extract(retrieve_data1disj,[2000000,4000000],option='narrow')  # should be the same
+narrow_data1disj == retrieve_data1disj
+```
+
+```{python}
+narrow_data1olap = extract(retrieve_data1olap,[2345612,2987654], option='narrow')
+narrow_data1olap['header'], narrow_data1olap['data'][2980000], intervals([2350000,2980000],100,'overlap')['data'][2980000], narrow_data1olap['data'][2980000] == intervals([2350000,2980000],100,'overlap')['data'][2980000]
+```
+
+```{python}
+oldC = list(retrieve_data1disj['data'].keys())
+newC = [oldC[0], oldC[20], oldC[-1]]
+filter_data1disj = extract(retrieve_data1disj,newC)  # option='filter' by default
+filter_data1disj
+```
+
+### Example 2 {#sec-eg2narrow}
+
+```{python}
+narrow_data2disj = extract(retrieve_data2disj,[int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3],option='narrow')
+narrow_data2disj
+```
+
+```{python}
+narrow_data2olap = extract(retrieve_data2olap,[int(np.exp(18)) - 2*10**3,int(np.exp(18)) + 2*10**3],option='narrow')
+narrow_data2olap
+```
+
+## Partitioning {#sec-partition}
+
+We may wish to present our data in a "partitioned" form, i.e. if we have data on intervals $(A,C_1], (A, C_2],\ldots, (A,C_k]$, we may wish to express this as data for $(A, C_1], (C_1,C_2],\ldots,(C_{k-1},C_k]$. We do this with the ```partition``` function. We can reverse the process with the ```unpartition``` function (both in `src/primes_in_intervals/transforms.py`).
+
+```python
+def partition(meta_dictionary):
+    """Add partitioned counts to a dataset, modifying it in place.
+
+    Given data for the ranges (A, C_1], (A, C_2], ..., (A, C_k], store the
+    counts for (A, C_1], (C_1, C_2], ..., (C_{k-1}, C_k] under a new
+    'partition' item.
+    """
+    if 'data' not in meta_dictionary.keys():
+        return print('No data to partition.')
+    if 'partition' in meta_dictionary.keys():
+        return print('Partitioned data already exists.')
+    C = list(meta_dictionary['data'].keys())
+    C.sort()  # just in case: it's important that these are in increasing order
+    partitioned_data = { C[0] : meta_dictionary['data'][C[0]] }
+    for k in range(1,len(C)):
+        partitioned_data[C[k]] = {}
+        for m in meta_dictionary['data'][C[k]].keys():
+            partitioned_data[C[k]][m] = meta_dictionary['data'][C[k]][m] - meta_dictionary['data'][C[k - 1]][m]
+    meta_dictionary['partition'] = {}
+    for c in C:
+        meta_dictionary['partition'][c] = {}
+        for m in partitioned_data[c].keys():
+            meta_dictionary['partition'][c][m] = partitioned_data[c][m]
+    meta_dictionary['header']['contents'].append('partition')
+    return meta_dictionary
+```
+
+`unpartition` is the inverse: successive sums in place of successive differences, rebuilding the cumulative `'data'` item from a `'partition'` item.
+
+### Example 1 {#sec-eg1partition}
+
+```{python}
+retrieve_data1disj = retrieve(100,'disjoint')
+```
+
+The partitioned data runs to a hundred checkpoints, so here we display the header and the first nontrivial entry.
+
+```{python}
+partition(retrieve_data1disj)
+retrieve_data1disj['header'], retrieve_data1disj['partition'][2010000]
+```
+
+```{python}
+partition(retrieve_data1olap)
+retrieve_data1olap['header'], retrieve_data1olap['partition'][2010000]
+```
+
+### Example 2 {#sec-eg2partition}
+
+```{python}
+partition(retrieve_data2disj)
+retrieve_data2disj['header'], retrieve_data2disj['partition'][65558989]
+```
+
+```{python}
+partition(retrieve_data2olap)
+retrieve_data2olap['header'], retrieve_data2olap['partition'][65558989]
+```
+
+To see ```unpartition``` at work, we build a dataset that contains only partitioned counts, and reconstruct the cumulative counts from it.
+
+```{python}
+testunpartition = { 'header' : retrieve_data2olap['header'] }
+testunpartition['header']['contents'] = ['partition']
+testunpartition['partition'] = retrieve_data2olap['partition']
+testunpartition['header'], testunpartition['partition'][65558989]
+```
+
+```{python}
+unpartition(testunpartition)['header']
+```
+
+```{python}
+testunpartition['data'] == retrieve_data2olap['data']
+```
+
+## Nested intervals {#sec-nest}
+
+Input a dataset with data corresponding to checkpoints $[C_0,\ldots,C_K]$, where $C_0 < C_1 < \cdots < C_K$. Output a new dataset with data corresponding to the intervals (assuming $K = 2k + 1$ is odd)
+
+$$(C_k, C_{k + 1}], (C_{k-1}, C_{k + 2}], \ldots, (C_0, C_K].$$
+
+Note that each interval is contained in the next, so these are "nested" intervals. If the $C$'s form an arithmetic progression, then each of the nested intervals share a common midpoint, $N$ (say). Thus, the density of primes in these intervals is approximately $1/(\log N - 1)$. However, this gets worse and worse as an approximation for all primes in an interval as the interval get wider. Thus, there is a trade-off between having a better approximation to the density of primes in an interval, and the number of datapoints (length of the interval). It will be interesting to see how these play off against each other.
+
+```python
+def nest(dataset):
+    """Return a new dataset organized by nested intervals about the midpoint.
+
+    Input a dataset with data for checkpoints C_0 < C_1 < ... < C_K; output
+    a new dataset for the intervals (C_k, C_{k+1}], (C_{k-1}, C_{k+2}], ...,
+    (C_0, C_K] (assuming K = 2k + 1 is odd), keyed by the pairs
+    (lower, upper).
+    """
+    if 'data' not in dataset.keys():
+        if 'partition' not in dataset.keys():
+            return print('No data to work with, or data is not in a suitable configuration for nesting.')
+        else:
+            unpartition(dataset)
+    C = list(dataset['data'].keys())
+    C.sort()
+    if len(C) < 3:
+        return print('At least three checkpoints needed for a nontrivial nesting.')
+    interval_type = dataset['header']['interval_type']
+    A = dataset['header']['lower_bound']
+    B = dataset['header']['upper_bound']
+    H = dataset['header']['interval_length']
+    no_of_checkpoints = dataset['header']['no_of_checkpoints']
+    nest = { 'header' : {'nested_intervals' : 0, 'interval_type' : interval_type, 'lower_bound': A, 'upper_bound' : B, 'interval_length' : H, 'no_of_checkpoints' : no_of_checkpoints, 'contents' : [] } }
+    nest['nested_interval_data'] = {}
+    if len(C)%2 == 1:
+        C.pop(len(C)//2)
+    k = len(C)//2
+    M = list(dataset['data'][C[-1]].keys())
+    for i in range(k):
+        nest['nested_interval_data'][C[k - i - 1], C[k + i]] = {}
+        for m in M:
+            nest['nested_interval_data'][C[k - i - 1], C[k + i]][m] = dataset['data'][C[k + i]][m] - dataset['data'][C[k - i - 1]][m]
+    nest['header']['nested_intervals'] = k
+    nest['header']['contents'].append('nested_interval_data')
+    return nest
+```
+
+Two details of the listing are worth noting. If the number of checkpoints is odd, the middle one is discarded, so that the remaining checkpoints pair off symmetrically about the center. And the new dataset's counts are keyed by the pairs `(lower, upper)` rather than by single checkpoints; the item `'nested_interval_data'` replaces `'data'`, and the header records the number of nested intervals.
+
+### Example 1 {#sec-eg1nest}
+
+```{python}
+get_data1disj = retrieve(100,'disjoint')
+```
+
+As before, the nested datasets are large, so we display the header and the innermost interval's counts.
+
+```{python}
+nest_data1disj = nest(get_data1disj)
+nest_data1disj['header'], nest_data1disj['nested_interval_data'][(2490000, 2510000)]
+```
+
+```{python}
+get_data1olap = pick(retrieve(100,'overlap'), 2000000)
+```
+
+```{python}
+nest_data1olap = nest(get_data1olap)
+nest_data1olap['header'], nest_data1olap['nested_interval_data'][(2490000, 2510000)]
+```
+
+### Example 2 {#sec-eg2nest}
+
+```{python}
+get_data2disj = retrieve(90,'disjoint')
+```
+
+```{python}
+nest_data2disj = nest(get_data2disj)
+nest_data2disj['header'], nest_data2disj['nested_interval_data'][(65658979, 65660959)]
+```
+
+```{python}
+get_data2olap = pick(retrieve(90,'overlap'), 65559979)
+```
+
+```{python}
+nest_data2olap = nest(get_data2olap)
+nest_data2olap['header'], nest_data2olap['nested_interval_data'][(65658979, 65660959)]
+```

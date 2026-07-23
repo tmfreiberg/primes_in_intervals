@@ -1,0 +1,43 @@
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: rebuild the running datasets from the database"
+#| output: false
+import numpy as np
+
+# NumPy 2 displays scalars inside containers as np.float64(...); restore the
+# plain numeric display so statistics read cleanly.
+np.set_printoptions(legacy="1.25")
+
+from primes_in_intervals import nest, partition, retrieve
+
+
+def pick(found, lower_bound):
+    """Return the retrieved dataset whose data begins at the given lower bound.
+
+    Introduced in the Datasets chapter: accepts either return shape of
+    ``retrieve`` (one dataset, or a list of them).
+    """
+    if isinstance(found, dict):
+        found = [found]
+    return next(d for d in found if d['header']['lower_bound'] == lower_bound)
+
+
+# Example 1: interval length 100 over (2 * 10**6, 3 * 10**6].
+A1, B1, H1 = 2*10**6, 3*10**6, 100
+retrieve_data1disj = retrieve(H1, 'disjoint')
+retrieve_data1olap = pick(retrieve(H1, 'overlap'), A1)
+partition(retrieve_data1disj)
+partition(retrieve_data1olap)
+nest_data1disj = nest(retrieve(H1, 'disjoint'))
+nest_data1olap = nest(pick(retrieve(H1, 'overlap'), A1))
+
+# Example 2: interval length 85 about exp(18), and the companion length-90
+# datasets used for nesting.
+N2, H2 = int(np.exp(18)), 85
+retrieve_data2disj = retrieve(H2, 'disjoint')
+retrieve_data2olap = retrieve(H2, 'overlap')
+partition(retrieve_data2disj)
+partition(retrieve_data2olap)
+nest_data2disj = nest(retrieve(90, 'disjoint'))
+nest_data2olap = nest(pick(retrieve(90, 'overlap'), 65559979))
+```

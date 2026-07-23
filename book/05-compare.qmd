@@ -1,0 +1,135 @@
+# Compare {#sec-compare}
+
+Let's work out how many intervals in a range should contain a given number of primes, according to Cramér's model,
+and according to our prediction. In place of the actual number, we'll place a quadruple with the actual number, Cramér's prediction, our preferred prediction ($F$), and our alternate prediction ($F^*$).
+
+Below, ```frei``` is the function 
+
+$$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{\log H + (\log 2\pi + \gamma - 1)}{H}\cdot \frac{m - (m - \lambda)^2}{2} \right].$$
+
+and ```frei_alt``` is the function
+
+$$F^*(H,m,\lambda^*) = \frac{e^{-\lambda^*}(\lambda^*)^m}{m!}\left[1 + \frac{\lambda^*}{H}(m - \lambda^*) + \frac{\log H + (\log 2\pi + \gamma - 1)}{H}\cdot \frac{m - (m - \lambda^*)^2}{2} \right].$$
+
+We use $F$ with $\lambda = H/(\log N - 1)$ and $F^*$ with $\lambda^* = H/\log N$, $\lambda/H$ (or $\lambda^*/H$) representing the "probability" of an integer very close to $N$ being prime.
+
+We're comparing these against the prediction based on $$\mathrm{Binom}(H,\lambda/H).$$
+
+NB: $F$ and $F^*$ apply to the case of overlapping intervals only at this point. The details of the case of disjoint intervals and prime-starting intervals have not been worked out yet, and it may well be that different second-order terms arise in the disjoint/prime-starting case. Therefore, in the case of disjoint/prime-starting intervals, comparisons with estimates arising from $F$ and $F^*$ should be taken with a grain of salt.
+
+Every chapter runs in its own session; the folded cells below rebuild the running datasets of @sec-raw_data from the database and apply `analyze` to each of them, reproducing the state at the end of @sec-analyze.
+
+{{< include _setup_analyzed.qmd >}}
+
+The prediction functions live in `src/primes_in_intervals/predictions.py` (from the shell: `pii binom-pmf`, `pii frei`, `pii frei-alt`, `pii ms`). In compact form:
+
+```python
+import numpy as np
+from scipy.special import binom, gamma
+import sympy
+
+# The "Montgomery-Soundararajan" constant 1 - gamma - log(2*pi).
+MS = 1 - sympy.EulerGamma.evalf() - np.log(2*(np.pi))
+
+def binom_pmf(H,m, p):
+    return binom(H,m)*(p**m)*(1 - p)**(H - m)
+
+def frei(H,m,t):
+    Q_2 = ((m - t)**2 - m)/2
+    return np.exp(-t)*(t**m/gamma(m + 1))*(1 - ((np.log(H) - MS)/(H))*Q_2)
+
+def frei_alt(H,m,t):
+    Q_1 = m - t
+    Q_2 = ((m - t)**2 - m)/2
+    return np.exp(-t)*(t**m/gamma(m + 1))*(1 + (t/H)*Q_1 - ((np.log(H) - MS)/(H))*Q_2)
+```
+
+Since `MS` is $1 - \gamma - \log 2\pi$, the factor `1 - ((np.log(H) - MS)/(H))*Q_2` in `frei` is exactly the bracket in the definition of $F$, with the signs absorbed into `Q_2`; likewise for `frei_alt`. Note also that `binom(H,m)` and `gamma(m + 1)` come from SciPy, so all three functions accept real $m$, which is what lets them be drawn as smooth curves in the plots to come. The constant, numerically:
+
+```{python}
+from primes_in_intervals import MS, compare
+
+float(MS)
+```
+
+The comparison itself is `compare`, in `src/primes_in_intervals/comparisons.py` (`pii compare`). It modifies a dataset in place, adding a `'comparison'` item keyed exactly as the data is, and it requires the dataset to have been analyzed first, since the quadruples include the observed relative frequencies. For each checkpoint $c$ of a flat dataset, or each pair $c = (c_0, c_1]$ of a nested one, it works as follows. Take $N$ to be the midpoint of the range, and set $p = 1/(\log N - 1)$, the more accurate estimate for the density of primes around the range, and $p^* = 1/\log N$. The number of intervals under consideration, the multiplier, depends on the interval type: the width of the range for overlapping intervals, the width divided by $H$ for disjoint intervals, and the total count of intervals recorded (the number of primes in the range) for prime-starting intervals. Then, for each $m$, the three probabilities $\mathrm{Binom}(H, p)$ at $m$, $F(H, m, Hp)$, and $F^*(H, m, Hp^*)$ are computed, and each is multiplied by the multiplier and truncated to an integer to give a predicted count. The comparison entry at $m$ is the pair of quadruples
+
+```
+(observed frequency, Binomial probability, F probability, F* probability),
+(observed count,     Binomial prediction,  F prediction,  F* prediction)
+```
+
+and the header's `'contents'` gains the item `'comparison - actual, binomial, frei, frei_alt'`, naming the order once and for all. For a flat dataset the trivial first checkpoint's entries are all zero, for consistency with the keys.
+
+We might also like to know which of the predictions fit the data best. But what do we mean by "best"? We mean the prediction $\mathrm{pred}$ for which 
+
+$$\sum_m (h(m) - \mathrm{pred}(m))^2$$
+
+is the smallest. We'll just sum over $m$ in the smallest range of consecutive integers outside of which $h(m)$ is zero for every set of intervals in the dataset. Within that range, $h(m)$ may still be zero for a particular set of intervals, and those terms are included in the sum. (Recall that $h(m)$ is the number of overlapping intervals considered that contain exactly $m$ primes. For disjoint intervals, replace $h(m)$ by $g(m)$.)
+
+Note that comparing the Binomial with parameters $H$ and $\lambda/H$ is not an apples to apples comparison with $F^*(H,m,\lambda^*)$, but we're mainly interested in comparing $F$ and $F^*$ (we expect both to be superior to the Binomial, regardless of whether we plug $\lambda/H$ or $\lambda^*/H$ into the Binomial).
+
+The scoring is `winners`, in `src/primes_in_intervals/comparisons.py` (`pii winners`). It requires a `'comparison'` item, and adds a `'winners'` item, again keyed as the data is, recording "best" in the two senses above. For each range it takes $m$ over the range of consecutive integers just described, and computes, from the counts quadruples, the sum of squared errors for each of B (Binomial), F, and F$^*$; the three sums are stored under `'B sq error'`, `'F sq error'`, and `'F* sq error'`, and the labels are ranked under the keys `1`, `2`, `3`, from smallest squared error to largest. In the second sense, each $m$ is awarded to whichever prediction's count is closest to the observed count, ties awarding all of the tied; the lists of values of $m$ each prediction wins land under `'B wins for m in '` and its siblings, and the labels are ranked by how many values of $m$ they win under `'most wins'`, `'2nd most wins'`, and `'least wins'`, ties concatenating the labels. The trivial first checkpoint of a flat dataset gets a row of dashes.
+
+### Example 1 {#sec-eg1compare}
+
+`compare` returns the whole dataset; as before, we display the header, in which `'contents'` now records the comparison and its column order.
+
+```{python}
+compare(retrieve_data1disj)['header']
+```
+
+```{python}
+# NB: in the disjoint intervals case, our estimates frei and frei_alt are not intended to be applied.
+retrieve_data1disj['comparison'][2500000]
+```
+
+```{python}
+compare(retrieve_data1olap)['header']
+```
+
+```{python}
+retrieve_data1olap['comparison'][3000000][7]
+```
+
+```{python}
+Cnest = list(nest_data1disj['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data1disj)['comparison'][Cnest[k]]
+```
+
+```{python}
+Cnest = list(nest_data1olap['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data1olap)['comparison'][Cnest[k]]
+```
+
+### Example 2 {#sec-eg2compare}
+
+```{python}
+# NB: in the disjoint intervals case, our estimates frei and frei_alt are not intended to be applied.
+compare(retrieve_data2disj)['header']
+```
+
+```{python}
+compare(retrieve_data2olap)['header']
+```
+
+```{python}
+# NB: in the disjoint intervals case, our estimates frei and frei_alt are not intended to be applied.
+retrieve_data2disj['comparison'][65558989][5], retrieve_data2olap['comparison'][65558989][5]
+```
+
+```{python}
+Cnest = list(nest_data2disj['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data2disj)['comparison'][Cnest[k]]
+```
+
+```{python}
+Cnest = list(nest_data2olap['nested_interval_data'].keys())
+k = 20
+Cnest[k], compare(nest_data2olap)['comparison'][Cnest[k]]
+```
+
+The next chapter turns these comparisons into readable tables.

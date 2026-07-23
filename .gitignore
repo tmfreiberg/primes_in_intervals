@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.pyc
 *.egg-info/
@@ -5,3 +6,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+
+# Quarto
+/.quarto/
+/_book/
+/_freeze/
+site_libs/
+**/*.quarto_ipynb
+
+# Generated media (the book draws these live; keep only images/static/)
+*.mp4

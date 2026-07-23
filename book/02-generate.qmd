@@ -1,0 +1,501 @@
+# Generate {#sec-generate}
+
+Here we define a series of functions that will help us generate dictionaries containing information about primes in intervals. In the end, we will use the two functions ```disjoint_cp``` and ```overlap_cp``` ([disjoint](#sec-disjoint) and [overlapping](#sec-overlapping) intervals, with "checkpoints"). We build up to them via the non-checkpoint versions ```disjoint``` and ```overlap```. We test our code on a few examples, confirming that it works as intended.
+
+::: {.callout-note}
+The functions in this chapter live in the `primes_in_intervals` package: the sieve in `src/primes_in_intervals/sieve.py`, and every interval counter in `src/primes_in_intervals/intervals.py`. The listings shown below are compact implementations, for reading; the packaged versions add documentation and type annotations but implement the same algorithms. The code cells in this chapter execute the package. Each function is also a shell command: `pii disjoint "2*10**6" "3*10**6" 100`, for instance, and `pii intervals --help` for the rest (see `docs/cli.md`).
+:::
+
+```{python}
+from itertools import count
+
+import primes_in_intervals as pii
+from primes_in_intervals import (
+    anyIntervals,
+    disjoint,
+    disjoint_cp,
+    intervals,
+    next_prime,
+    overlap,
+    overlap_cp,
+    postponed_sieve,
+    prime_pi,
+    prime_start,
+    prime_start_cp,
+    zeros,
+)
+```
+
+## Sieve {#sec-sieve}
+
+To count primes, we first need to generate them. We could make our own basic sieve of Eratosthenes, but we want something that is a bit more efficient, without getting too fancy. The pros and cons of numerous prime generators are discussed here [How to implement an efficient infinite generator of prime numbers in Python?](https://stackoverflow.com/questions/2211990/how-to-implement-an-efficient-infinite-generator-of-prime-numbers-in-python)
+
+We took the following generator posted by Will Ness on the above Stack Overflow page.
+
+```python
+from itertools import count
+
+
+def postponed_sieve():
+    """Yield the primes 2, 3, 5, 7, 11, ... indefinitely.
+
+    Prime generator found here:
+    https://stackoverflow.com/questions/2211990/how-to-implement-an-efficient-infinite-generator-of-prime-numbers-in-python
+    (see ideone.com/aVndFM). This code was posted by Will Ness; the original
+    code is by David Eppstein and Alex Martelli (ActiveState Recipe 2002).
+    See the above URL for further information about who contributed what,
+    and discussion of complexity.
+    """
+    yield 2
+    yield 3
+    yield 5
+    yield 7
+    sieve = {}
+    ps = postponed_sieve()  # a separate base Primes Supply:
+    p = next(ps) and next(ps)  # (3) a Prime to add to dict
+    q = p*p  # (9) its sQuare
+    for r in count(9,2):  # the Candidate
+        if r in sieve:  # r's a multiple of some base prime
+            s = sieve.pop(r)  # i.e. a composite ; or
+        elif r < q:
+            yield r  # a prime
+            continue
+        else:  # (r==q): or the next base prime's square:
+            s = count(q+2*p,2*p)  # (9+6, by 6 : 15,21,27,33,...)
+            p = next(ps)  # (5)
+            q = p*p  # (25)
+        for m in s:  # the next multiple
+            if m not in sieve:  # no duplicates
+                break
+        sieve[m] = s  # original test entry: ideone.com/WFv4f
+```
+
+The packaged version is `postponed_sieve` in `src/primes_in_intervals/sieve.py`, with the same attribution.
+
+## Count {#sec-count}
+
+We can now count primes. We won't ultimately use the next two functions: we'll just use them to test our 'primes in intervals' counting functions for correctness.
+
+Recall that $$\pi(x) = \#\{p \le x : p \text{ prime}\}.$$ The function ```prime_pi(x,y)``` returns $$\pi(y) - \pi(x) = \#\{x < p \le y : p \text{ prime}\}.$$
+
+```python
+def next_prime(a):
+    """The first prime after a."""
+    primes = postponed_sieve()
+    p = next(primes)
+    while p <= a:
+        p = next(primes)
+    return p
+
+def prime_pi(x,y):
+    """Number of primes p such that x < p <= y."""
+    primes = postponed_sieve()
+    c = 0
+    p  = next(primes)
+    while p <= x:
+        p = next(primes)
+    while p <= y:
+        c += 1
+        p = next(primes)
+    return c
+```
+
+```{python}
+# Test the above
+next_prime(100), next_prime(101), prime_pi(1,100), prime_pi(1,101)
+```
+
+## Disjoint intervals {#sec-disjoint}
+
+Given $A$, $B$, $H$, and $m$, let 
+
+$$g(m) = \#\{1 \le k \le (B - A)/H : \pi(A + kH) - \pi(A + (k - 1)H) = m\}.$$ 
+
+That is, $g(m)$ of the disjoint intervals 
+
+$$(a, a + H], \quad a = A, A + H, \ldots, A + (K - 1)H$$
+
+contain exactly $m$ primes, where $A + KH \le B < A + (K + 1)H$, i.e. $K = [(B - A)/H]$. 
+
+The function ```disjoint(A,B,H)``` returns a dictionary whose items are of the form ```m : g(m)``` for all ```m``` such that ```g(m)``` is nonzero. 
+
+We just have to iterate over the primes and, as soon as a prime exceeds $A + (k - 1)H$, start a counter, incrementing it by $1$ for each new prime until a prime exceeds $A + kH$. If the counter equals $m$ at this point, we increment the value of our dictionary item ```m : g(m)``` by $1$. We reset the counter and repeat for the next interval, until all intervals have been covered.
+
+```python
+def disjoint(A,B,H):
+    """Create a dictionary whose items are of the form m : g(m),
+
+    where g(m) is the number of the disjoint intervals
+    (A, A + H], (A + H, A + 2H],..., (A + (K-1)H, A + KH]
+    that contain exactly m primes. Here, A + KH <= B < A + (K + 1)H.
+    """
+    K = (B - A)//H
+    B = A + K*H  # re-define B in case the inputs are not of this form
+    # Initialize the output dictionary covering all possible values for m.
+    output = { m : 0 for m in range(H + 1) }
+    P = postponed_sieve()
+    p = next(P)  # initialize p as 2
+    a = A  # start of the first interval, viz. (A, A + H]
+    while p < a + 1:
+        p = next(P)  # p is now the prime after a (= A initially)
+    m = 0  # initialize m as 0
+    for k in range(1, K + 1):
+        while p < a + k*H + 1:
+            m += 1
+            p = next(P)
+        output[m] += 1
+        m = 0
+    # remove m if there are no intervals with m primes
+    output = { m : output[m] for m in output.keys() if output[m] != 0}
+    return output
+```
+
+```{python}
+# Let's test this a little bit.
+# disjoint(0,H, H) should return { m : 1}, where m is the number of primes up to H
+for H in range(10,100,10):
+    print(H, disjoint(0,H,H), prime_pi(0,H))
+```
+
+```{python}
+test_dict = disjoint(2*10**6,3*10**6,100)
+test_dict
+```
+
+```{python}
+# The values in this dictionary should sum to the number of intervals considered, namely, (3 - 2)*10**6/10**2 = 10**4.
+# Secondly, if we sum m*g(m) over all keys m, we should get the total number of primes between 2*10**6 and 3*10**6.
+sum([v for v in test_dict.values()]), sum([k*v for k,v in zip(test_dict.keys(),test_dict.values())]), prime_pi(2*10**6,3*10**6)
+```
+
+## Disjoint intervals, with checkpoints {#sec-disjoint_checkpoints}
+
+Suppose we are interested in ```disjoint(2*10**6,3*10**6,100)```. For about the same cost, we can compute ```disjoint(2*10**6,2*10**6 + k*10**5,100)``` for ```k = 1,2,...,10```. One motivation for this is for [animating plots](#sec-plots). The function ```disjoint_cp``` takes a list ```C``` and interval length ```H``` as input, and returns a "meta-dictionary" consisting of the items
+
+```C[k] : disjoint(C[0],C[k],H)```
+
+for ```k in range(1,len(C))```. 
+
+Obviously, we don't just compute ```disjoint(C[0],C[k],H)``` for each ```k```, for that would waste a lot of time running through the primes multiple times.
+
+We call the ```C[k]``` "checkpoints".
+
+We'll also add the trivial item ```C[0] : { 0 : 0, 1 : 0, ...}``` to our meta-dictionary. (Note that ```disjoint(C[0],C[0],H)``` returns an empty dictionary ```{}```, not a dictionary with zero-value items.)
+
+In fact, we'll put all of these items into a dictionary, and make this dictionary the value of an item in our ultimate output dictionary, whose key will be ```'data'```. 
+
+At the start of our "meta-dictionary", we will insert the dictionary-valued item 
+
+```'header' : {'interval_type' : 'disjoint', 'lower_bound' : C[0], 'upper_bound' : C[-1], 'interval_length' : H, 'no_of_checkpoints' : len(C), 'contents' : ['data'] } ``` 
+
+to help us identify what it contains. (We'll add more to the meta-dictionary later, expanding the ```'contents'``` as we go along.) We call this item's value the "header" of the data.
+
+Our final output will therefore take the form 
+
+```{ 'header' : { ... }, 'data' : { C[0] : { 0 : 0, 1 : 0, ... }, C[1] : { ... }, ... , C[-1] : { ... } }  }```
+
+In the item ```C[k] : { ... }```, the value is a dictionary consisting of items ```m : g(m)```, where ```g(m)``` is the number of intervals of the form $(a, a + H]$, where $C[0] < a \le C[k]$ and $a = C[0] + jH$ for some integer $j \ge 0$, that contain exactly $m$ primes. 
+
+Before the checkpoint version itself, an ancillary function. Different checkpoints see different values of $m$, so their dictionaries end up with different key sets; `zeros` reconciles them. With its default `pad='yes'`, it pads every checkpoint's dictionary out to the same keys, namely every $m$ whose count is nonzero at some checkpoint; with `pad='no'`, it strips zero-count items instead, recovering what the non-checkpoint functions return. The listing is `zeros` in `src/primes_in_intervals/intervals.py`.
+
+The checkpoint version itself is `disjoint_cp` in the same module. The idea is exactly as described above: one pass of the prime generator, carrying each checkpoint's counts forward to the next, rather than one pass per checkpoint. As the comments in the source put it, generating primes is by far the most expensive part of this computation (time-wise and memory-wise), so we iterate over the primes just once. The function also cleans up the checkpoint list first: checkpoints are reduced to the form $C[0] + kH$, and duplicates are removed, so that, e.g., with $H = 100$, the list $[0,10,100,210,350,400]$ is replaced by $[0,100,200,300,400]$.
+
+```{python}
+# Let's test this out
+C = list(range(2*10**6, 3*10**6 + 10**5,10**5))
+H = 100
+test_dict_cp = disjoint_cp(C,100)
+test_dict_cp['header']
+```
+
+The full meta-dictionary runs to a couple of hundred lines in its printed form: eleven checkpoints, each padded to the same eighteen values of $m$. Its shape is exactly as promised above, and the checks below interrogate it.
+
+```{python}
+# test_dict_cp['data'][3*10**6] should be the same as test_dict from before.
+test_dict_cp['data'][3000000] == test_dict
+```
+
+```{python}
+# The following should be the same, except that the checkpoint dictionary will contain items with zero-value.
+disjoint(2*10**6,2*10**6 + 10**5,100), test_dict_cp['data'][2*10**6 + 10**5]
+```
+
+```{python}
+disjoint(2*10**6,2*10**6 + 10**5,100) == zeros(test_dict_cp['data'],pad='no')[2*10**6 + 10**5]
+```
+
+```{python}
+# Let's check the agreement for all 10 checkpoints
+agree = True
+for k in range(1,11):
+    agree = agree and (disjoint(2*10**6,2*10**6 + k*10**5,100) == zeros(test_dict_cp['data'],pad='no')[2*10**6 + k*10**5])
+agree
+```
+
+```{python}
+# Let's test the behaviour for checkpoints that don't really make sense
+H = 100
+C = [0,50,150,200,650]
+test_dict_cp2 = disjoint_cp(C,H)
+test_dict_cp2, disjoint(0,600,H)
+```
+
+## Overlapping intervals {#sec-overlapping}
+
+Given $A$, $B$, $H$, and $m$, let 
+
+$$h(m) = \#\{A < a \le B : \pi(a + H) - \pi(a) = m\}.$$ 
+
+That is, $h(m)$ of the $B - A$ overlapping intervals 
+
+$$(A + 1, A + 1 + H], \ldots, (B, B + H]$$ 
+
+contain exactly $m$ primes. The function ```overlap(A,B,H)``` returns a dictionary whose items are of the form ```m : h(m)``` for all ```m``` such that ```h(m)``` is nonzero. 
+
+The idea is to notice that 
+
+$$\pi(a + 1 + H) - \pi(a + 1) = \pi(a + H) - \pi(a) + \mathbb{1}_{\mathbf{P}}(a + 1 + H) - \mathbb{1}_{\mathbf{P}}(a + 1),$$
+
+$\mathbb{1}_{\mathbf{P}}$ being the characteristic function of the primes $\mathbf{P}$. This means that the count $m$ of the number of primes in an interval only changes when an endpoint is prime. We use a "sliding window" of width $H$, and we'll need to generate two sets of primes: one set for the left endpoint, and another for the right. As generating primes is the most time-consuming part of what we're doing here, we expect our ```overlap``` function to take twice as long as our ```disjoint``` function, given the same inputs.
+
+The code is simple, but there is a little bit of fiddling around involved when $a$ gets close to $B$ (specifically, when the prime following $a$ is bigger than $B$). The implementation is `overlap` in `src/primes_in_intervals/intervals.py`, and the mechanics are these.
+
+Imagine a sliding window of length $H$, starting at $a$. We have $m$ primes in the window. Move the window one to the right. If the left endpoint is prime while the right endpoint is not, we lose a prime: $m \to m - 1$. If the right endpoint is prime while the left is not, we gain a prime: $m \to m + 1$. Otherwise, $m$ remains unchanged. Thus, we only need to update our dictionary when either the left or right endpoint passes a prime.
+
+For example, if the next prime after $a$ is $p = a + 10$ and the next prime after $a + H$ is $q = a + H + 12$, then $(a', a' + H]$ contains $m$ primes for $a' = a, a + 1, a + 9$, so we can just update our $m$-counter by nine. Also, $(a + 10, a + 10 + H]$ now contains $m - 1$ primes. We'd let $p = a + 10$ become the new $a$, $m - 1$ the new $m$, `p_next` the new $p$, $q$ remains the same, etc. Of course, we have a small problem if $a' + 10$ exceeds $B$, so we treat that with a separate loop at the end.
+
+```{python}
+# Let's test this out a bit
+
+# a = 1, interval (1, 1 + 5] contains 3 primes
+# a = 2, interval (2, 2 + 5] contains 3 primes
+# a = 3, interval (3, 3 + 5] contains 2 primes
+# a = 4, interval (4, 4 + 5] contains 2 primes 
+# a = 5, interval (5, 5 + 5] contains 1 prime
+
+# Hence we should get {1 : 1, 2 : 2, 3: 2} here...
+overlap(0,5,5)
+```
+
+```{python}
+# overlap(M, M + 1, H) should just return the number of primes in (M + 1, M + 1 + H]
+M = 999
+H = 1000
+overlap_test_dict = overlap(M,M + 1,H)
+overlap_test_dict, prime_pi(M + 1,M + 1 + H)
+```
+
+```{python}
+M = 0
+N = 100
+H = 10
+overlap_test_dict2 = overlap(M,N,H)
+overlap_test_dict2, sum([v for v in overlap_test_dict2.values()]), sum([k*v for k,v in zip(overlap_test_dict2.keys(), overlap_test_dict2.values())]) 
+# First sum should equal N - M. Last value should be approx but not exactly H*[pi(N) - pi(M)]
+```
+
+## Overlapping intervals, with checkpoints {#sec-overlapping_checkpoints}
+
+Analogous to [disjoint intervals, with checkpoints](#sec-disjoint_checkpoints). The implementation is `overlap_cp` in `src/primes_in_intervals/intervals.py`: the same sliding window, with the running counts copied out at each checkpoint.
+
+```{python}
+M = 0
+N = 100
+H = 10
+C = list(range(M, N + 1))
+overlap_cp_test_dict = overlap_cp(C,H)
+for c in C[47:]:
+    print(c, overlap_cp_test_dict['data'][c], overlap_cp_test_dict['data'][c] == overlap(M,c,H)) # should be the same if there are no zero-values in the latter
+```
+
+```{python}
+[overlap_cp_test_dict['data'][c][3] for c in C[5:]] # should be increasing
+```
+
+```{python}
+H = 100
+C = list(range(0,100 + 1,10)) # = [0, 10, ..., 100]
+another_test_olap_cp = overlap_cp(C, H)
+another_test_olap_cp
+```
+
+```{python}
+import pandas as pd
+another_test_olap_cp_df = pd.DataFrame.from_dict(another_test_olap_cp['data'], orient='index').astype('int')#
+another_test_olap_cp_df
+# The sum of each row should be equal to the label of that row.
+# The values in a given column should be increasing as we go down.
+```
+
+## Prime-starting intervals, and a more general function {#sec-prime_starting}
+
+We have considered intervals of the form $(a, a + H]$, where $a$ runs over integers in an arithmetic progression modulo $H$ (disjoint intervals), and where $a$ runs over all integers (overlapping intervals). We wish to consider intervals for which $a$ is always prime. The basic function is the following.
+
+```python
+def prime_start(M,N,H):
+    """Count primes in (p, p + H] for the primes p in (M, N]."""
+    P = postponed_sieve()
+    Q = postponed_sieve()
+    p = next(P)
+    q = next(Q)
+    while p <= M:
+        p = next(P)
+    while q <= p:
+        q = next(Q) 
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    while p <= N:
+        while q <= p + H:
+            m += 1
+            q = next(Q)
+        output[m] += 1
+        p = next(P)
+        m += -1
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+```
+
+Two prime generators again: `p` runs over the left endpoints, which are now the primes in $(M, N]$, and `q` runs ahead counting the primes in $(p, p + H]$. When the left endpoint advances from one prime `p` to the next, the decrement `m += -1` accounts for the one prime leaving the window's left side, and the `q` loop counts the primes newly entering on the right; the bookkeeping balances even when the next prime lies beyond `p + H`, since the decrement is then cancelled by `q` counting that same prime on its way forward.
+
+```{python}
+prime_start(10,20,20)
+# (11,31] has 13, 17, 19, 23, 29, 31
+# (13,33] has 17, 19, 23, 29, 31
+# (17,37] has 19, 23, 29, 31, 37
+# (19,39] has 23, 29, 31, 37
+# Therefore should return {4: 1, 5: 2, 6: 1}
+```
+
+```{python}
+from timeit import default_timer as timer
+start = timer()
+prime_start_test = prime_start(2000000,3000000,100)
+end = timer()
+end - start
+```
+
+```{python}
+prime_start_test
+```
+
+Here is the version with checkpoints: `prime_start_cp` in `src/primes_in_intervals/intervals.py`, following the same pattern as the other two.
+
+```{python}
+start = timer()
+prime_start_cp_test = prime_start_cp(list(range(2000000,3000001,100000)),100)
+end = timer()
+end - start
+```
+
+```{python}
+prime_start_cp_test['data'][3000000] == prime_start_test
+```
+
+In fact, why not consider $a$ running over any strictly increasing sequence $A$ of nonnegative integers? For that matter, why restrict ourselves to primes in intervals? Why don't we consider the number of intervals with $m$ elements from another strictly increasing sequence $B$ of nonnegative integers? If we can generate $A$ and $B$, we can count intervals $(a, a + H]$ with $a$ running over $A$, containing a given number of elements of $B$. This can be done with ```anyIntervals``` (in `src/primes_in_intervals/intervals.py`): the left endpoints are drawn from `generator1`, the elements counted from `generator2`, and a small buffer holds the current window's elements of $B$, popping those that fall out on the left as $a$ advances.
+
+For the case of overlapping intervals and primes, we'd use ```count()``` from the ```itertools``` package as ```generator1```, and ```postponed_sieve()``` as ```generator2```. Let's try it out.
+
+```{python}
+from timeit import default_timer as timer
+start1 = timer()
+nachlass_general_way = anyIntervals(2*10**6, 3*10**6,100, count(), postponed_sieve())
+end1 = timer()
+
+start2 = timer()
+nachlass_specific_way = pii.overlap_cp([2*10**6, 3*10**6],100)
+end2 = timer()
+
+end1 - start1, end2 - start2
+```
+
+The greater generality costs us a little bit extra in time. (We also have to store a list whose length is at most $H$.) Let's check our results for consistency.
+
+```{python}
+nachlass_general_way == nachlass_specific_way['data'][3000000]
+```
+
+What about disjoint intervals? That's just considering $(a, a + H]$ where $a$ is in an arithmetic progression $\bmod H$. ```count(b,n)``` from ```itertools``` gives us the arithmetic progression $b \bmod n$.
+
+```{python}
+from timeit import default_timer as timer
+start1 = timer()
+nachlass_general_way = anyIntervals(2*10**6-100, 3*10**6-100,100, count(0,100), postponed_sieve())
+end1 = timer()
+
+start2 = timer()
+nachlass_specific_way = pii.disjoint_cp([2*10**6, 3*10**6],100)
+end2 = timer()
+
+end1 - start1, end2 - start2
+```
+
+```{python}
+nachlass_general_way == nachlass_specific_way['data'][3000000]
+```
+
+Notice that the input was ```anyIntervals(2*10**6-100, 3*10**6-100,100, count(0,100), postponed_sieve())```, i.e. we subtracted $H = 100$ from the lower and upper bounds. This is because ```anyIntervals(M,N,H, count(0,H), postponed_sieve())``` gives us data on intervals $(a, a + 100]$ for $M < a \le N$ with $a \equiv 0 \bmod H$. If we'd put $M = 2\cdot 10^6$ and $N = 3\cdot 10^6$ into the function, it would have returned data for $(a, a + 100]$ for $a = 2\cdot 10^6 + 100,2\cdot 10^6 + 200,\ldots,3\cdot 10^6$, whereas the ```disjoint_cp``` function gives us data for $a = 2\cdot 10^6,2\cdot 10^6 + 100,\ldots,3\cdot 10^6 - 100$.
+
+Let's see the ```anyIntervals``` function applied to intervals whose left endpoints are all prime. For purposes of demonstration, let's add two lines to the code so that we see a print out at each key step.
+
+```{python}
+def anyIntervalsPrint(M,N,H,generator1,generator2):
+    A = generator1
+    B = generator2
+    a = next(A)
+    b = next(B)
+    while a <= M:
+        a = next(A)
+    output = { m : 0 for m in range(H + 1) }
+    m = 0
+    Blist = []
+    while a <= N:  
+        while b <= a:
+            b = next(B)	    
+        while b <= a + H:
+            m += 1
+            Blist.append(b)
+            b = next(B)
+        output[m] += 1
+        print(f'{a} < {Blist} <= {a + H}, {m} : {output[m]}')
+        a = next(A)
+        temp_m = m
+        for i in range(temp_m):
+            if Blist[0] <= a: 
+                m += -1
+                Blist.pop(0)
+    output = { m : output[m] for m in range(H + 1) if output[m] != 0}
+    return output
+```
+
+```{python}
+anyIntervalsPrint(10,31,10,postponed_sieve(),postponed_sieve())
+```
+
+## A single function {#sec-single_function}
+
+```python
+def intervals(C,H,interval_type='overlap'):
+    """Dispatch to the checkpoint counter for the given interval type.
+
+    interval_type is 'disjoint', 'prime_start', or 'overlap', the last
+    being the default when the argument is not given.
+    """
+    if interval_type == 'disjoint':
+        return disjoint_cp(C,H)
+    if interval_type == 'prime_start':
+        return prime_start_cp(C,H)
+    if interval_type == 'overlap':
+        return overlap_cp(C,H)
+    # any other value returns None
+```
+
+The packaged `intervals` in `src/primes_in_intervals/intervals.py` is the same dispatcher, and is the usual entry point from here on: `intervals(C, H, 'disjoint')`, `intervals(C, H, 'overlap')`, or `intervals(C, H, 'prime_start')`.
+
+## To do {#sec-to_do}
+
+* Have the output of our checkpoint version ```anyIntervals_cp``` include a ```header``` etc., as the other checkpoint functions do.
+
+* If we do a computation that takes a long time, and then want to extend the calculation, we'd like to be able to pick up where we left off. Suppose we compute ```intervals([0,N],H)``` where ```N``` is very large, and then we'd like to compute ```intervals([N,2N], H)``` or ```intervals([0,2N], H)```. At the moment, we'd have to start from scratch. What we'd like to do is save the state of our ```intervals``` function, particularly the prime generators, and then just keep going.
+
+* In a similar vein, another thing we could do is input various values for the interval length ```H```, say a list ```[H_1,H_2,...,H_k]```, and have a function return ```intervals(C,H_i)``` for each ```H_i```, without simply computing ```intervals(C,H_i)``` $k$ times.
+

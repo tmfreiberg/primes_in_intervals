@@ -1,0 +1,21 @@
+# TL;DR {#sec-tldr}
+
+The histogram shows the distribution of primes in intervals. Cramér's random model leads to a prediction for this distribution, shown in orange. We have another prediction, shown in green. In the data we've looked at, as here, our prediction seems to fare better than the one based on Cramér's model. 
+
+As suggested in [@freiberg2018], our prediction is based on the Hardy-Littlewood prime tuples conjecture [@hardy_littlewood1923], inclusion-exclusion, and a precise estimate, due to Montgomery and Soundararajan [@montgomery_soundararajan2004], for a certain average involving the singular series of the prime tuples conjecture. 
+
+![](/images/N_exp21_H_60.gif){fig-alt="Animated histogram of the number of primes in intervals of length 60 near e^21, with the binomial prediction in orange and the prediction F in green."}
+
+The prediction of Cramér's random model (orange) is, with $\lambda/H = 1/(\log N - 1)$ being the "probability" that an integer close to $N$ is prime (and we assume $\lambda \asymp 1$), is the Binomial distribution $\mathrm{Binom}(H,\lambda/H)$, whose probability mass function is given by
+
+$$f(m; H,\lambda/H) = \binom{H}{m}\left(\frac{\lambda}{H}\right)^m\left(1 - \frac{\lambda}{H}\right)^{H - m} =  \frac{e^{-\lambda}\lambda^m}{m!}\bigg[1 + \frac{Q_1(\lambda,m)}{H} + \frac{Q_2(\lambda,m)}{H^2} + \cdots\bigg],$$
+
+where each $Q_j(\lambda,m)$ is a polynomial in $\lambda$ and $m$, and in particular, 
+
+$$Q_1(\lambda,m) = \frac{m - (m - \lambda)^2}{2}.$$
+
+Our prediction (green) is 
+
+$$F(H,m,\lambda) = \frac{e^{-\lambda}\lambda^m}{m!}\left[1 + \frac{Q_1(\lambda,m)}{H}\left(\log H + (\log 2\pi + \gamma - 1)\right) \right],$$
+
+in agreement with Cramér's model only as a first-order approximation. The secondary term in our prediction is more in line with our observation that the distribution of the numerical data is more "pinched up" around the center: there is more of a _bias_ towards the mean $\lambda$ than is suggested by the Binomial distribution. (Note that $F(H,m,\lambda)$ is not a probability mass function as its sum over $m$ is only close to $1$, but not equal to $1$. $F(H,m,\lambda)$ is an _approximation_ to a probability mass function, viz. the probability that the interval $(a, a + H]$ of length $H$, $a$ chosen uniformly at random from $(N - M, N + M]$, contains exactly $m$ primes. Whether one can find modifications to the higher order terms in the expansion of $f(m; H,\lambda/H)$, that lead to even better predictions for the distribution of primes in intervals, is certainly a tantalizing question, worth pursuing.)

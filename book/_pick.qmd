@@ -1,0 +1,21 @@
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: numeric display and the pick helper"
+#| output: false
+import numpy as np
+
+# NumPy 2 displays scalars inside containers as np.float64(...); restore the
+# plain numeric display so statistics read cleanly.
+np.set_printoptions(legacy="1.25")
+
+
+def pick(found, lower_bound):
+    """Return the retrieved dataset whose data begins at the given lower bound.
+
+    Introduced in the Datasets chapter: accepts either return shape of
+    ``retrieve`` (one dataset, or a list of them).
+    """
+    if isinstance(found, dict):
+        found = [found]
+    return next(d for d in found if d['header']['lower_bound'] == lower_bound)
+```

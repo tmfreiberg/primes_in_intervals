@@ -1,0 +1,88 @@
+# Analyze {#sec-analyze}
+
+With datasets in hand, the next step is to turn raw counts into distributions and summary statistics. The `analyze` function adds two items to a dataset, modifying it in place: a `'distribution'` item, holding the relative frequencies at each checkpoint, and a `'statistics'` item, holding the mean, second moment, variance, standard deviation, median, and mode. It, and the two ancillary functions it is built on, live in `src/primes_in_intervals/statistics.py`; from the shell, `pii analyze` (see `docs/cli.md`).
+
+Every chapter of this book runs in its own session, so the folded cell below rebuilds the running datasets of @sec-raw_data from the database.
+
+{{< include _setup.qmd >}}
+
+```{python}
+from primes_in_intervals import analyze
+```
+
+The first ancillary function, `dictionary_sort`, returns a copy of a dictionary sorted by its keys (the checkpoints' frequency dictionaries carry their keys in order of first appearance, not in numerical order).
+
+The second, `dictionary_statistics`, takes a frequency dictionary, whose keys are numbers and each key's value is the number of times (frequency of) the key occurs in some data, and computes everything the analysis needs without ever expanding the data into a list. Its core is a single pass over the sorted frequencies:
+
+```python
+    for s in frequencies.keys():
+        number_of_objects_counted += frequencies[s]
+        mean += s*frequencies[s]
+        second_moment += (s**2)*frequencies[s]
+        if frequencies[s] == M:
+            mode.append(s)
+    mean = mean/number_of_objects_counted
+    second_moment = second_moment/number_of_objects_counted
+    variance = second_moment - mean**2
+    standard_deviation = np.sqrt(variance)
+```
+
+Here `M` is the maximum frequency, so the mode collects every key attaining it, and is therefore a list; and the variance is the second moment minus the square of the mean, over the whole population of intervals. The median comes from cumulative frequencies, in a small subroutine: with $n$ values counted in all, walk the keys in increasing order, accumulating their frequencies; if $n$ is odd, the median is the first key at which the cumulative count exceeds $n/2$, and if $n$ is even, it is the average of the first keys at which the cumulative count reaches $n/2$ and $n/2 + 1$. Finally, dividing each frequency by $n$ gives the relative frequencies, and the function returns a dictionary with the distribution under `'dist'` and the summary statistics under `'mean'`, `'2ndmom'`, `'var'`, `'sdv'`, `'med'`, and `'mode'`.
+
+`analyze` applies `dictionary_statistics` across a whole dataset. It handles both configurations. For a flat dataset, it runs over the checkpoints of the `'data'` item, skipping the first: the first checkpoint's counts are all zero, so its distribution and statistics are stored as empty dictionaries (no meaningful statistics for the trivial item). For a nested dataset, it runs over every pair in `'nested_interval_data'`, none of which is trivial. Either way, the results land in the new `'distribution'` and `'statistics'` items, keyed exactly as the source data is, the header's `'contents'` grows accordingly, and the modified dataset is returned. Guards cover the remaining cases: a dataset that has already been analyzed is left alone with a message, as is one with no data at all.
+
+### Example 1 {#sec-eg1analyze}
+
+`analyze` returns the whole dataset, which by now runs to many hundreds of lines, so here we display the header, in which `'contents'` records the two new items.
+
+```{python}
+analyze(retrieve_data1disj)['header']
+```
+
+```{python}
+retrieve_data1disj['distribution'][2500000]
+```
+
+```{python}
+retrieve_data1disj['statistics'][2500000]
+```
+
+```{python}
+analyze(retrieve_data1olap)['header']
+```
+
+```{python}
+retrieve_data1olap['distribution'][2500000], retrieve_data1olap['statistics'][2500000]
+```
+
+```{python}
+analyze(nest_data1disj)
+nest_data1disj['distribution'][(2490000, 2510000)]
+```
+
+```{python}
+analyze(nest_data1olap)
+nest_data1olap['statistics'][(2490000, 2510000)]
+```
+
+### Example 2 {#sec-eg2analyze}
+
+```{python}
+analyze(retrieve_data2disj)['header']
+```
+
+```{python}
+analyze(retrieve_data2olap)['header']
+```
+
+```{python}
+analyze(nest_data2disj)
+Cnest = list(nest_data2disj['nested_interval_data'].keys())
+nest_data2disj['statistics'][Cnest[0]]
+```
+
+```{python}
+analyze(nest_data2olap)
+Cnest = list(nest_data2olap['nested_interval_data'].keys())
+Cnest[20], nest_data2olap['distribution'][Cnest[20]]
+```

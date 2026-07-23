@@ -1,0 +1,71 @@
+# Quarto book configuration.
+#
+# Layout: this file and index.qmd live at the repository root (Quarto requires
+# the book's home page to be index.qmd at the project root); the remaining
+# chapters, the bibliography, and any book-specific styling live in book/.
+
+project:
+  type: book
+  output-dir: _book
+  # Run code cells from the repository root rather than from the chapter's own
+  # directory. Without this, a cell in book/ would look for the database at
+  # book/data/primes_in_intervals_db and find nothing.
+  execute-dir: project
+  # Copy images/ into the rendered site, so root-relative links like
+  # ![](/images/EXP17_76_NESTplot.png) resolve in the published book.
+  resources:
+    - images/
+
+book:
+  title: "Biases in the distribution of primes in intervals"
+  author: "Tristan Freiberg"
+  search: true
+  reader-mode: true
+  page-navigation: true
+  repo-url: https://github.com/tmfreiberg/primes_in_intervals
+  repo-actions: [source, issue]
+  sidebar:
+    style: docked
+    collapse-level: 1
+  chapters:
+    - index.qmd
+    - book/01-introduction.qmd
+    - book/02-generate.qmd
+    - book/03-data.qmd
+    - book/04-analyze.qmd
+    - book/05-compare.qmd
+    - book/06-display.qmd
+    - book/07-plots.qmd
+    - book/08-worked.qmd
+    - book/09-extensions.qmd
+    - book/99-references.qmd
+    # Chapters are added here as they are written, for example:
+    #   - book/01-intervals.qmd
+
+bibliography: book/references.bib
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    number-depth: 2
+    code-fold: false
+    code-tools: true
+    fig-align: center
+    css: styles.css
+    html-math-method: mathjax
+
+# Code cells run at render time, so the book executes the actual package.
+# Slow computations (long sieves, animations) stay as precomputed images from
+# images/ rather than being recomputed on every render.
+execute:
+  freeze: auto
+  warning: false
+  message: false
+
+crossref:
+  chapters: true
+  # Render equation references as "(1.2)" rather than "(Equation 1.2)".
+  eq-prefix: ""

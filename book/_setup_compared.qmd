@@ -1,0 +1,14 @@
+{{< include _setup_analyzed.qmd >}}
+
+```{python}
+#| code-fold: true
+#| code-summary: "Setup: attach the comparisons"
+#| output: false
+from primes_in_intervals import compare
+
+for _ds in (retrieve_data1disj, retrieve_data1olap,
+            retrieve_data2disj, retrieve_data2olap,
+            nest_data1disj, nest_data1olap,
+            nest_data2disj, nest_data2olap):
+    compare(_ds)
+```

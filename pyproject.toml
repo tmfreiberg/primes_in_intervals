@@ -51,7 +51,6 @@ target-version = "py310"
 # harnesses can compare against it; it is a historical record, not part of
 # the package, so it is not linted.  (The pattern matches the file only: the
 # package is the directory src/primes_in_intervals/.)
-extend-exclude = ["primes_in_intervals.py", "original"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "D"]
@@ -60,15 +59,11 @@ ignore = [
     "D213",  # incompatible with D212
     "E741",  # ambiguous variable names: mathematical notation (l, I) is deliberate
 ]
-# The mathematical naming conventions (C, H, M, N, A, B, P, Q, ...) and the
-# original camelCase anyIntervals are kept on purpose, so the pep8-naming (N)
-# rules are not enabled.
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D100", "D101", "D102", "D103", "D104"]
 # The validation harnesses stub modules before importing (E402), transcribe
 # the original scripts verbatim (E501, F841), and are one-off tools (D1xx).
-"validation/*" = ["D100", "D103", "E402", "E501", "F841"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

@@ -1,0 +1,15 @@
+# Extensions {#sec-extensions}
+
+To get some insight into what's going on here, it may help to know exactly which intervals contain a given number of primes. We can add a few lines to our code in order to output a list of $a$ for which $(a, a + H]$ contains exactly $m$ primes, for $m$ in a given list of interest.
+
+The function is `overlap_extension` in `src/primes_in_intervals/intervals.py` (`pii overlap-extension` from the shell), and it is `overlap` with a notebook attached. It takes the same $A$, $B$, $H$, together with a list `M` of values of $m$ to watch, and runs the same two-generator sliding window. The extra bookkeeping rides on the window's events: whenever the current count $m$ is one of the watched values, the left endpoint $a$ is recorded, and, since the count stays at $m$ until an endpoint next passes a prime, the whole run of left endpoints from $a$ up to the next event is recorded with it. The function returns a pair: the dictionary of watched values, `{m : [every a with exactly m primes in (a, a + H]]}`, and the usual counting dictionary `{m : h(m)}`, so the lists can be checked against the counts at a glance.
+
+```{python}
+from primes_in_intervals import overlap_extension
+
+overlap_extension(1000,2000,50,[3,11])
+```
+
+Ten intervals $(a, a + 50]$ with $a$ between $1000$ and $2000$ contain exactly three primes, and the list shows where they all are: four consecutive left endpoints from $1307$, two more runs around $1321$ and $1327$. At the other extreme, the eight intervals containing eleven primes sit in one run, $a = 1271$ through $1278$, a neighborhood worth a closer look.
+
+The function is there to help us investigate, and this is as far as we have taken it: we may do more with it later.

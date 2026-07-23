@@ -1,0 +1,88 @@
+# Display {#sec-display}
+
+Let's make a human-readable display of the data we have gathered.
+
+The `display` function (in `src/primes_in_intervals/display.py`; `pii display` from the shell) turns any dataset into a pandas DataFrame, one row per checkpoint for flat data and one row per interval for nested data. In this book its output renders as an actual table, captions included; on a terminal, the same call prints plain text.
+
+Its seven options, each a string, select what the table shows.
+
+`orient` is passed through to pandas: `'index'` (the default) puts the checkpoints down the rows, `'columns'` puts them across the top.
+
+`description` controls the caption. With the default `'on'`, the returned table is styled with a caption of the form "Interval type: overlapping. Lower bound: 2000000. Upper bound: 3000000. Interval length: 100. Partial counts: cumulative.", and when a comparisons view is on, the caption gains the sentence naming the tuple order: "In tuple (a,b,c,d), a is actual data, b is Binomial prediction, c is frei prediction, and d is frei_alt prediction." With `'off'`, the bare DataFrame comes back, which is also the form that accepts further pandas chaining such as `.head()` and `.tail()`.
+
+`zeroth_item` set to `'no show'` drops the trivial first checkpoint's row (or column), whose counts are all zero.
+
+`count` selects `'cumulative'` counts (the default) or the `'partition'` item's per-gap counts, which must exist. In the partitioned view a `totals` row or column is appended, giving the total number of intervals between $A$ and $B$ containing $m$ primes; in the cumulative view the totals would just repeat the last checkpoint. For disjoint intervals a `prime_tally` column is appended in either view: the total number of primes from $C_0$ to $C_k$ in the cumulative case, or from $C_{k-1}$ to $C_k$ in the partitioned case.
+
+`comparisons` switches the cells from plain counts to the comparison quadruples: `'absolute'` shows the counts quadruple, `'probabilities'` the probabilities quadruple, and the dataset must have been through `compare` first. Only cumulative data is compared. For nested datasets there is additionally `single_cell`: with the default `'true'` each cell holds the whole quadruple, and with `'false'` each value of $m$ expands into four columns, labelled $m$, `B`$m$, `F`$m$, and `F*`$m$, holding the four components side by side.
+
+`winners` set to `'show'` replaces the counts altogether with the scoreboard from the `winners` function: one row per range, opening with the range's size (`B - A` for overlapping intervals, `(B - A)/H` for disjoint ones, `pi(B) - pi(A)` for prime-starting ones), the bounds and $H$, then the squared errors, the ranks, the win lists, and the win rankings.
+
+Guard messages cover the missing prerequisites: partitioned view without a partition, comparisons view without a comparison, winners view without winners.
+
+Every chapter runs in its own session; the folded cells below rebuild the running datasets of @sec-raw_data and take them through `analyze` and `compare`, reproducing the state at the end of @sec-compare.
+
+{{< include _setup_compared.qmd >}}
+
+```{python}
+from primes_in_intervals import display, intervals, partition
+```
+
+### Example 1 {#sec-eg1display}
+
+```{python}
+display(retrieve_data1disj)
+```
+
+```{python}
+display(retrieve_data1olap, zeroth_item = 'no show', orient='columns', count='partition')
+```
+
+```{python}
+display(nest_data1disj)
+```
+
+The comparison tables run to fifty rows of quadruples, so here and below we chain `.head()` onto the caption-free form.
+
+```{python}
+display(nest_data1olap,comparisons='absolute', description='off').head()
+```
+
+### Example 2 {#sec-eg2display}
+
+```{python}
+display(retrieve_data2disj, count='partition', description='off').head()
+```
+
+```{python}
+display(retrieve_data2olap, comparisons='absolute', description='off').head()
+```
+
+```{python}
+display(retrieve_data2olap, comparisons='probabilities', description='off').head()
+```
+
+```{python}
+display(nest_data2disj,comparisons='probabilities').head()
+```
+
+```{python}
+display(nest_data2olap).tail()
+```
+
+To see the winners scoreboard rendered, we score the nested overlap data of Example 1 and show its first rows.
+
+```{python}
+from primes_in_intervals import winners
+
+winners(nest_data1olap)
+display(nest_data1olap, winners='show').head()
+```
+
+### Example 3 (table from Gauss's Nachlass) {#sec-eg3display}
+
+```{python}
+# We can now re-create Goldschmidt's table in one line, in about one second.
+
+display(partition(intervals(list(range(2*10**6,3*10**6 + 1, 10**5)), 100, 'disjoint')), orient='columns', zeroth_item='no show', count='partition')
+```
